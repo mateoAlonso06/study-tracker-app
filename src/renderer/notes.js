@@ -151,6 +151,7 @@ function notesResults() {
   }
   const orphan = groups.get('none');
   groups.delete('none');
+  for (const list of groups.values()) list.sort((a, b) => a.id - b.id); // reading order inside a session
   const blocks = [...groups.entries()].map(([sid, list]) => {
     const session = sessionById(sid);
     return `<section class="note-group"><h3 class="group-title">${sessionHeading(session)}</h3>${list.map((n) => noteCard(n, terms)).join('')}</section>`;

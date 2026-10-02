@@ -58,9 +58,19 @@ function persistActiveSoon() {
   live.saveTimer = setTimeout(persistActive, 800);
 }
 
+// Sessions saved by older versions kept one big note string; the current shape is a list of notes.
+function normalizeActive(a) {
+  if (typeof a.notes === 'string') a.notes = a.notes ? [{ id: 1, title: '', content: a.notes }] : [];
+  if (!Array.isArray(a.notes)) a.notes = [];
+  if (!a.notes.length) a.notes.push({ id: 1, title: '', content: '' });
+  a.noteSeq = Math.max(a.noteSeq || 0, ...a.notes.map((n) => n.id));
+  if (!a.notes.some((n) => n.id === a.currentNote)) a.currentNote = a.notes[0].id;
+  return a;
+}
+
 async function restoreActive() {
   const saved = await window.api.getActive();
-  live.active = saved ? { ...saved, running: false } : null; // recovered sessions come back paused
+  live.active = saved ? normalizeActive({ ...saved, running: false }) : null; // recovered sessions come back paused
   if (live.active) startLoop();
   return live.active;
 }
@@ -183,16 +193,67 @@ function liveView() {
         <button class="ghost danger" data-action="live-discard">Descartar</button>
       </div>
     </div>
-    <div class="editor-wrap"><div id="live-editor"></div></div>
+    <div class="live-body">
+      <aside class="live-notes">
+        <div class="live-notes-head"><strong>Notas</strong><button data-action="live-add-note">+ Nota</button></div>
+        <div class="live-note-list" id="live-note-list"></div>
+      </aside>
+      <section class="live-editor-col">
+        <div class="live-title-row">
+          <input id="live-note-title" placeholder="Título de la nota" />
+          <button class="ghost danger" data-action="live-delete-note">Borrar nota</button>
+        </div>
+        <div class="editor-wrap"><div id="live-editor"></div></div>
+      </section>
+    </div>
   </div>`;
+}
+
+const currentNote = () => live.active.notes.find((n) => n.id === live.active.currentNote);
+
+function renderLiveNoteList() {
+  const el = document.getElementById('live-note-list');
+  if (!el) return;
+  const a = live.active;
+  el.innerHTML = a.notes
+    .map((n) => {
+      const preview = n.content ? noteText(n.content).slice(0, 70) : '';
+      return `<button class="live-note ${n.id === a.currentNote ? 'active' : ''}" data-action="live-select-note" data-id="${n.id}">
+        <strong>${esc(n.title || 'Sin título')}</strong>
+        <span class="small muted">${esc(preview) || 'Vacía'}</span>
+      </button>`;
+    })
+    .join('');
+}
+
+function showNote(id, focus = false) {
+  const a = live.active;
+  a.currentNote = id;
+  const note = currentNote();
+  const title = document.getElementById('live-note-title');
+  title.value = note.title;
+  setEditorHtml(live.quill, note.content);
+  live.quill.history.clear();
+  renderLiveNoteList();
+  persistActiveSoon();
+  if (focus) title.focus();
 }
 
 // Called by render() after the live view markup is in the DOM.
 function mountLive() {
-  live.quill = createEditor(document.getElementById('live-editor'), live.active.notes, (html) => {
-    live.active.notes = html;
+  live.quill = createEditor(document.getElementById('live-editor'), currentNote().content, (html) => {
+    currentNote().content = html;
+    renderLiveNoteList();
     persistActiveSoon();
   });
+  const title = document.getElementById('live-note-title');
+  title.value = currentNote().title;
+  title.addEventListener('input', () => {
+    currentNote().title = title.value;
+    renderLiveNoteList();
+    persistActiveSoon();
+  });
+  renderLiveNoteList();
   updateLiveUi();
 }
 
@@ -253,13 +314,14 @@ async function beginSession(subjectId, mode, config) {
     mode,
     config,
     startedAt: new Date().toISOString(),
-    notes: '',
+    notes: [],
     phase: 'focus',
     phaseMs: 0,
     focusMs: 0,
     pomodoros: 0,
     running: true,
   };
+  normalizeActive(live.active);
   await persistActive();
   startLoop();
   state.view = 'live';
@@ -271,10 +333,12 @@ function stopModal() {
   a.running = false;
   persistActive();
   const minutes = Math.max(1, Math.round(a.focusMs / 60000));
+  const toSave = a.notes.filter((n) => n.title.trim() || n.content);
+  const notesInfo = toSave.length ? `<p class="muted small">Se guardarán ${toSave.length} ${toSave.length === 1 ? 'nota' : 'notas'} con la sesión.</p>` : '';
   const extra = a.mode === 'pomodoro' ? `<p class="muted small">Pomodoros completados: ${a.pomodoros}. Solo el tiempo de foco suma.</p>` : '';
   openModal(
     `<h2>Guardar sesión</h2>
-     ${extra}
+     ${extra}${notesInfo}
      <div class="field"><label>Duración (minutos)</label><input name="minutes" type="number" min="1" step="1" value="${minutes}" /></div>
      <div class="row2">
        <div class="field"><label>Tema o lección</label><input name="topic" placeholder="IAM" /></div>
@@ -288,7 +352,11 @@ function stopModal() {
         hours: Number(m) / 60,
         topic,
         position,
-        note: a.notes ? { title: topic, content: a.notes, text: noteText(a.notes) } : null,
+        notes: toSave.map((n) => ({
+          title: n.title.trim() || (toSave.length === 1 ? topic : ''),
+          content: n.content,
+          text: n.content ? noteText(n.content) : '',
+        })),
         startedAt: a.startedAt,
         pomodoros: a.pomodoros,
       });
@@ -326,6 +394,22 @@ const liveActions = {
   'live-skip': () => {
     advancePhase(false);
     updateLiveUi();
+  },
+  'live-add-note': () => {
+    const a = live.active;
+    const note = { id: ++a.noteSeq, title: '', content: '' };
+    a.notes.push(note);
+    showNote(note.id, true);
+  },
+  'live-select-note': (id) => showNote(id),
+  'live-delete-note': () => {
+    const a = live.active;
+    const note = currentNote();
+    if ((note.title || note.content) && !confirm('¿Borrar esta nota?')) return;
+    const index = a.notes.indexOf(note);
+    a.notes.splice(index, 1);
+    if (!a.notes.length) a.notes.push({ id: ++a.noteSeq, title: '', content: '' });
+    showNote(a.notes[Math.min(index, a.notes.length - 1)].id);
   },
   'live-stop': () => stopModal(),
   'live-discard': async () => {

@@ -238,9 +238,12 @@ function registerIpc() {
         'INSERT INTO sessions (user_id, subject_id, date, hours, topic, position, started_at, pomodoros) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
       ).run(uid, s.subjectId, s.date, hours, topic, position, s.startedAt || null, Math.max(0, Number(s.pomodoros) || 0));
       const sessionId = Number(r.lastInsertRowid);
-      if (s.note && s.note.content) {
-        db.prepare('INSERT INTO notes (user_id, subject_id, session_id, title, content, text) VALUES (?, ?, ?, ?, ?, ?)')
-          .run(uid, s.subjectId, sessionId, String(s.note.title || '').trim(), String(s.note.content), String(s.note.text || ''));
+      const insertNote = db.prepare('INSERT INTO notes (user_id, subject_id, session_id, title, content, text) VALUES (?, ?, ?, ?, ?, ?)');
+      for (const n of Array.isArray(s.notes) ? s.notes : []) {
+        const title = String(n.title || '').trim();
+        const content = String(n.content || '');
+        if (!title && !content) continue;
+        insertNote.run(uid, s.subjectId, sessionId, title, content, String(n.text || ''));
       }
       db.exec('COMMIT');
       return sessionId;
