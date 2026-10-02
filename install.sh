@@ -80,10 +80,17 @@ install_appimage() {
   install -m 755 "$file" "${APP_DIR}/StudyTracker.AppImage"
 
   # AppImages need FUSE 2 to mount themselves; without it they must unpack on every start (slower).
-  if ! { /sbin/ldconfig -p 2>/dev/null || ldconfig -p 2>/dev/null; } | grep -q 'libfuse\.so\.2'; then
-    extra="--appimage-extract-and-run"
-    warn "Falta FUSE 2: el programa arrancará más lento. Para mejorarlo instalá libfuse2 (fuse-libs en Fedora, fuse2 en Arch)."
-  fi
+  # Capture the list first: `grep -q` in a pipeline exits early, and with pipefail the SIGPIPE it causes
+  # would make the check fail at random.
+  local libs
+  libs="$({ /sbin/ldconfig -p 2>/dev/null || ldconfig -p 2>/dev/null; } || true)"
+  case "$libs" in
+    *libfuse.so.2*) ;;
+    *)
+      extra="--appimage-extract-and-run"
+      warn "Falta FUSE 2: el programa arrancará más lento. Para mejorarlo instalá libfuse2 (fuse-libs en Fedora, fuse2 en Arch)."
+      ;;
+  esac
   printf '#!/bin/sh\nexec "%s/StudyTracker.AppImage" %s "$@"\n' "$APP_DIR" "$extra" >"$BIN_LINK"
   chmod 755 "$BIN_LINK"
 
