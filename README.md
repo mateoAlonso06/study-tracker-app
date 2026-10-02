@@ -19,9 +19,9 @@ Everything is stored **locally** in a single SQLite file. No account, no cloud.
 
 ## Install
 
-Pick one option.
+Pick one option. On Linux the fastest is the one-line command; on Windows use the installer.
 
-### Option 0: one command (Linux x86_64)
+### Option 1: one command (Linux x86_64)
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/mateoAlonso06/study-tracker-app/main/install.sh | bash
@@ -45,7 +45,7 @@ Optional environment variables: `STUDY_TRACKER_VERSION=v0.1.0` (install a specif
 > [Building the installers](#building-the-installers). As with any `curl | bash`, you can read the script first:
 > [`install.sh`](install.sh).
 
-### Option A: installers
+### Option 2: installers (Linux and Windows)
 
 Installers are not stored in git (they are about 100 MB). You can get them in two ways:
 
@@ -80,7 +80,7 @@ sudo apt install libfuse2        # on Ubuntu 24.04 the package is libfuse2t64
 The app is **not code-signed**, so Windows SmartScreen may show *"Windows protected your PC"*.
 Click **More info** and then **Run anyway**.
 
-### Option B: run from source
+### Option 3: run from source
 
 Requires [Git](https://git-scm.com/) and a recent [Node.js](https://nodejs.org/) LTS
 (the app itself runs on the Node version bundled inside Electron).
@@ -93,6 +93,15 @@ npm start
 ```
 
 On Linux, `npm start` adds `--no-sandbox` for you (needed when Electron's sandbox helper is not configured). On Windows and macOS the sandbox stays enabled.
+
+## Status and known limitations
+
+- Linux installers (AppImage and `.deb`) were built and the AppImage was tested end to end.
+- The Windows installers are built the same way but **have not been run on a real Windows machine yet**.
+  Please report anything odd.
+- Installers are **not code-signed** (Windows SmartScreen will warn, see above).
+- Only x86_64 Linux and 64-bit Windows are built. There is no macOS or ARM build.
+- No automatic updates: install a newer version over the old one (on Linux, run the one-line command again).
 
 ## Where your data lives
 
