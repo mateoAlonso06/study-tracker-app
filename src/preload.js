@@ -13,4 +13,7 @@ contextBridge.exposeInMainWorld('api', {
   listSessions: call('sessions:list'),
   saveSession: call('sessions:save'),
   deleteSession: call('sessions:delete'),
+  getActive: call('active:get'),
+  saveActive: call('active:save'),
+  clearActive: call('active:clear'),
 });

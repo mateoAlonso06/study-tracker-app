@@ -5,7 +5,7 @@ const state = {
   user: null,
   subjects: [],
   sessions: [],
-  view: 'home', // 'home' | 'subject'
+  view: 'home', // 'home' | 'subject' | 'live'
   subjectId: null,
 };
 
@@ -27,7 +27,13 @@ const addDays = (d, n) => {
   return r;
 };
 const mondayOf = (d) => addDays(d, -((d.getDay() + 6) % 7));
-const fmtHours = (h) => `${Math.round(h * 100) / 100} h`.replace('.', ',');
+const fmtHours = (h) => {
+  const min = Math.round(h * 60);
+  const hh = Math.floor(min / 60);
+  const mm = min % 60;
+  if (hh === 0) return `${mm} min`;
+  return mm ? `${hh} h ${mm} min` : `${hh} h`;
+};
 const fmtDate = (iso) =>
   parseIso(iso).toLocaleDateString('es-AR', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
 
@@ -74,12 +80,20 @@ function render() {
   if (!state.user) return renderLogin();
   const subject = state.view === 'subject' ? state.subjects.find((s) => s.id === state.subjectId) : null;
   if (state.view === 'subject' && !subject) state.view = 'home';
+  if (state.view === 'live' && !live.active) state.view = 'home';
+  const liveItem = live.active
+    ? `<button class="nav-item live-item ${state.view === 'live' ? 'active' : ''}" data-action="go-live">
+         <span>${esc(state.subjects.find((x) => x.id === live.active.subjectId)?.name || 'Sesión')}</span>
+         <span class="small" id="side-timer"></span>
+       </button>`
+    : '';
   appEl.innerHTML = `
     <div class="layout">
       <aside class="sidebar">
         <div class="user">
           <strong>${esc(state.user.name)}</strong>
         </div>
+        ${liveItem}
         <button class="nav-item ${state.view === 'home' ? 'active' : ''}" data-action="go-home">Inicio</button>
         ${state.subjects
           .map(
@@ -91,8 +105,10 @@ function render() {
         <div class="spacer"></div>
         <button class="nav-item" data-action="logout">Cambiar de perfil</button>
       </aside>
-      <main class="main">${state.view === 'subject' ? subjectView(subject) : homeView()}</main>
+      <main class="main">${state.view === 'live' ? liveView() : state.view === 'subject' ? subjectView(subject) : homeView()}</main>
     </div>`;
+  if (state.view === 'live') mountLive();
+  else if (live.active) updateLiveUi();
 }
 
 function homeView() {
@@ -119,7 +135,10 @@ function homeView() {
         ${goalLine}
         <div class="footer">
           <span class="small muted">${last ? `Seguís en: ${esc(last)}` : 'Sin sesiones todavía'}</span>
-          <button data-action="new-session" data-id="${s.id}">Registrar sesión</button>
+          <span>
+            <button class="ghost" data-action="new-session" data-id="${s.id}">Registrar manual</button>
+            <button class="primary" data-action="start-session" data-id="${s.id}">Iniciar sesión</button>
+          </span>
         </div>
       </div>`;
     })
@@ -158,9 +177,9 @@ function subjectView(subject) {
           (s) => `<div class="session">
         <div class="top">
           <strong>${esc(s.topic || 'Sin tema')}</strong>
-          <span class="meta">${esc(fmtDate(s.date))} · ${fmtHours(s.hours)}${s.position ? ` · ${esc(s.position)}` : ''}</span>
+          <span class="meta">${esc(fmtDate(s.date))} · ${fmtHours(s.hours)}${s.pomodoros ? ` · ${s.pomodoros} ${s.pomodoros === 1 ? 'pomodoro' : 'pomodoros'}` : ''}${s.position ? ` · ${esc(s.position)}` : ''}</span>
         </div>
-        ${s.notes ? `<p class="notes">${esc(s.notes)}</p>` : ''}
+        ${s.notes ? `<div class="notes">${notesToHtml(s.notes)}</div>` : ''}
         <div class="row-actions">
           <button class="ghost" data-action="edit-session" data-id="${s.id}">Editar</button>
           <button class="ghost danger" data-action="delete-session" data-id="${s.id}">Borrar</button>
@@ -173,7 +192,8 @@ function subjectView(subject) {
       <h1>${esc(subject.name)}</h1>
       <div class="actions">
         <button data-action="edit-subject" data-id="${subject.id}">Editar materia</button>
-        <button class="primary" data-action="new-session" data-id="${subject.id}">Registrar sesión</button>
+        <button data-action="new-session" data-id="${subject.id}">Registrar manual</button>
+        <button class="primary" data-action="start-session" data-id="${subject.id}">Iniciar sesión</button>
       </div>
     </div>
     <div class="stats">
@@ -284,24 +304,35 @@ function subjectModal(subject) {
 
 function sessionModal(subjectId, session) {
   const defaultPos = session ? session.position : lastPositionHint(subjectId);
+  let quill;
   openModal(
-    `<h2>${session ? 'Editar sesión' : 'Registrar sesión'}</h2>
+    `<h2>${session ? 'Editar sesión' : 'Registrar sesión manual'}</h2>
      <div class="row2">
        <div class="field"><label>Fecha</label><input name="date" type="date" value="${session?.date || todayIso()}" /></div>
-       <div class="field"><label>Horas</label><input name="hours" type="number" min="0" step="0.25" value="${session?.hours ?? ''}" placeholder="1.5" /></div>
+       <div class="field"><label>Duración (minutos)</label><input name="minutes" type="number" min="1" step="1" value="${session ? Math.round(session.hours * 60) : ''}" placeholder="90" /></div>
      </div>
      <div class="row2">
        <div class="field"><label>Tema o lección</label><input name="topic" value="${esc(session?.topic || '')}" placeholder="IAM" /></div>
        <div class="field"><label>Hasta dónde llegaste</label><input name="position" value="${esc(defaultPos || '')}" placeholder="min 42:10" /></div>
      </div>
-     <div class="field"><label>Notas</label><textarea name="notes" rows="8">${esc(session?.notes || '')}</textarea></div>
+     <div class="field"><label>Notas</label><div class="editor-wrap modal-editor"><div id="modal-editor"></div></div></div>
      ${buttons('Guardar')}`,
     async (data) => {
-      await window.api.saveSession({ ...data, id: session?.id, subjectId });
+      await window.api.saveSession({
+        id: session?.id,
+        subjectId,
+        date: data.date,
+        hours: Number(data.minutes) / 60,
+        topic: data.topic,
+        position: data.position,
+        notes: getEditorHtml(quill),
+      });
       await reload();
       render();
     }
   );
+  modalRoot.querySelector('.modal').classList.add('wide');
+  quill = createEditor(document.getElementById('modal-editor'), session?.notes || '');
 }
 
 function lastPositionHint(subjectId) {
@@ -314,6 +345,7 @@ async function enterApp() {
   await reload();
   state.view = 'home';
   state.subjectId = null;
+  if (await restoreActive()) state.view = 'live';
   render();
 }
 
@@ -357,6 +389,12 @@ const actions = {
     await enterApp();
   },
   logout: async () => {
+    if (live.active) {
+      await persistActive();
+      stopLoop();
+      live.active = null;
+      document.title = 'Study tracker';
+    }
     await window.api.logout();
     state.user = null;
     state.subjects = [];
@@ -364,6 +402,8 @@ const actions = {
     render();
   },
 };
+
+Object.assign(actions, liveActions);
 
 document.addEventListener('click', (e) => {
   const el = e.target.closest('[data-action]');

@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, shell } = require('electron');
 const path = require('path');
 const crypto = require('crypto');
 const { DatabaseSync } = require('node:sqlite');
@@ -36,7 +36,20 @@ function initDb() {
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
     CREATE INDEX IF NOT EXISTS idx_sessions_subject ON sessions(subject_id, date);
+    CREATE TABLE IF NOT EXISTS active_sessions (
+      user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+      subject_id INTEGER NOT NULL REFERENCES subjects(id) ON DELETE CASCADE,
+      data TEXT NOT NULL,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
   `);
+  migrate();
+}
+
+function migrate() {
+  const cols = db.prepare('PRAGMA table_info(sessions)').all().map((c) => c.name);
+  if (!cols.includes('started_at')) db.exec('ALTER TABLE sessions ADD COLUMN started_at TEXT');
+  if (!cols.includes('pomodoros')) db.exec('ALTER TABLE sessions ADD COLUMN pomodoros INTEGER NOT NULL DEFAULT 0');
 }
 
 function hashPassword(password, salt) {
@@ -112,7 +125,7 @@ function registerIpc() {
 
   ipcMain.handle('sessions:list', () =>
     db.prepare(
-      `SELECT id, subject_id AS subjectId, date, hours, topic, position, notes
+      `SELECT id, subject_id AS subjectId, date, hours, topic, position, notes, started_at AS startedAt, pomodoros
        FROM sessions WHERE user_id = ? ORDER BY date DESC, id DESC`
     ).all(requireUser())
   );
@@ -132,9 +145,29 @@ function registerIpc() {
     }
     const owned = db.prepare('SELECT 1 FROM subjects WHERE id = ? AND user_id = ?').get(s.subjectId, uid);
     if (!owned) throw new Error('Subject not found');
-    const r = db.prepare('INSERT INTO sessions (user_id, subject_id, date, hours, topic, position, notes) VALUES (?, ?, ?, ?, ?, ?, ?)')
-      .run(uid, s.subjectId, s.date, hours, topic, position, notes);
+    const r = db.prepare(
+      'INSERT INTO sessions (user_id, subject_id, date, hours, topic, position, notes, started_at, pomodoros) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+    ).run(uid, s.subjectId, s.date, hours, topic, position, notes, s.startedAt || null, Math.max(0, Number(s.pomodoros) || 0));
     return Number(r.lastInsertRowid);
+  });
+
+  ipcMain.handle('active:get', () => {
+    const row = db.prepare('SELECT subject_id, data FROM active_sessions WHERE user_id = ?').get(requireUser());
+    return row ? { ...JSON.parse(row.data), subjectId: row.subject_id } : null;
+  });
+
+  ipcMain.handle('active:save', (_e, a) => {
+    const uid = requireUser();
+    const owned = db.prepare('SELECT 1 FROM subjects WHERE id = ? AND user_id = ?').get(a.subjectId, uid);
+    if (!owned) throw new Error('Subject not found');
+    db.prepare(
+      `INSERT INTO active_sessions (user_id, subject_id, data, updated_at) VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+       ON CONFLICT(user_id) DO UPDATE SET subject_id = excluded.subject_id, data = excluded.data, updated_at = CURRENT_TIMESTAMP`
+    ).run(uid, a.subjectId, JSON.stringify(a));
+  });
+
+  ipcMain.handle('active:clear', () => {
+    db.prepare('DELETE FROM active_sessions WHERE user_id = ?').run(requireUser());
   });
 
   ipcMain.handle('sessions:delete', (_e, id) => {
@@ -155,7 +188,17 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
+      backgroundThrottling: false,
     },
+  });
+  win.webContents.setWindowOpenHandler(({ url }) => {
+    if (/^https?:\/\//.test(url)) shell.openExternal(url);
+    return { action: 'deny' };
+  });
+  win.webContents.on('will-navigate', (e, url) => {
+    if (url.startsWith('file://')) return;
+    e.preventDefault();
+    if (/^https?:\/\//.test(url)) shell.openExternal(url);
   });
   win.loadFile(path.join(__dirname, 'renderer', 'index.html'));
 }

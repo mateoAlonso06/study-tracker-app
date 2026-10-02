@@ -125,7 +125,7 @@ label { display: block; font-size: 12px; color: var(--text-2); margin-bottom: 4p
 }
 .session .top { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
 .session .meta { color: var(--text-2); font-size: 12px; }
-.session .notes { white-space: pre-wrap; margin: 8px 0 0; font-size: 13px; color: var(--text); }
+
 .session .row-actions { display: flex; gap: 4px; margin-top: 8px; }
 
 .empty { text-align: center; padding: 40px 16px; color: var(--text-2); }
@@ -155,3 +155,44 @@ label { display: block; font-size: 12px; color: var(--text-2); margin-bottom: 4p
 .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .modal .buttons { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
 .error { color: var(--danger); font-size: 13px; min-height: 18px; margin-top: 8px; }
+
+[hidden] { display: none !important; }
+
+.modal.wide { max-width: 760px; }
+.nav-item.live-item { display: flex; justify-content: space-between; gap: 8px; border: 1px solid var(--accent); color: var(--accent); margin-bottom: 4px; }
+
+/* live session */
+.live { display: flex; flex-direction: column; height: calc(100vh - 48px); }
+.live-bar { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 14px; }
+.live-timer { font-size: 44px; font-weight: 500; font-variant-numeric: tabular-nums; letter-spacing: 1px; }
+.live-bar .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* editor */
+.editor-wrap { display: flex; flex-direction: column; min-height: 0; }
+.live .editor-wrap { flex: 1; }
+.editor-wrap .ql-toolbar { background: var(--surface); border-color: var(--border); border-radius: 8px 8px 0 0; }
+.editor-wrap .ql-container { background: var(--surface); border-color: var(--border); border-radius: 0 0 8px 8px; font: inherit; font-size: 15px; color: var(--text); flex: 1; min-height: 0; overflow-y: auto; }
+.modal-editor .ql-container { min-height: 220px; max-height: 40vh; flex: none; }
+.ql-editor.ql-blank::before { color: var(--text-3); font-style: normal; }
+.ql-snow .ql-stroke { stroke: var(--text-2); }
+.ql-snow .ql-fill { fill: var(--text-2); }
+.ql-snow .ql-picker { color: var(--text-2); }
+.ql-snow .ql-picker-options { background: var(--surface); border-color: var(--border) !important; }
+.ql-snow.ql-toolbar button:hover .ql-stroke, .ql-snow.ql-toolbar button.ql-active .ql-stroke { stroke: var(--accent); }
+.ql-snow.ql-toolbar button:hover .ql-fill, .ql-snow.ql-toolbar button.ql-active .ql-fill { fill: var(--accent); }
+.ql-snow .ql-editor pre.ql-syntax { background: var(--surface-2); color: var(--text); }
+.ql-snow a { color: var(--accent); }
+
+/* saved notes */
+.session .notes { margin-top: 8px; font-size: 14px; }
+.session .notes > :first-child { margin-top: 0; }
+.session .notes > :last-child { margin-bottom: 0; }
+.session .notes p { margin: 0 0 6px; }
+.session .notes h1, .session .notes h2, .session .notes h3 { margin: 10px 0 4px; }
+.session .notes h1 { font-size: 18px; }
+.session .notes h2 { font-size: 16px; }
+.session .notes h3 { font-size: 14px; }
+.session .notes ul, .session .notes ol { margin: 4px 0 8px; padding-left: 22px; }
+.session .notes blockquote { margin: 6px 0; padding-left: 10px; border-left: 3px solid var(--border); color: var(--text-2); }
+.session .notes pre { background: var(--surface-2); padding: 8px 10px; border-radius: 6px; overflow-x: auto; font-size: 12px; }
+.session .notes a { color: var(--accent); }

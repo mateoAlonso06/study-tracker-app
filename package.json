@@ -9,5 +9,8 @@
   "license": "MIT",
   "devDependencies": {
     "electron": "^44.5.1"
+  },
+  "dependencies": {
+    "quill": "^2.0.3"
   }
 }
