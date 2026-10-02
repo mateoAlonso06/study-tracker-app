@@ -1,4 +1,4 @@
-const { contextBridge, ipcRenderer } = require('electron');
+const { contextBridge, ipcRenderer, webUtils } = require('electron');
 
 const call = (channel) => (arg) => ipcRenderer.invoke(channel, arg);
 
@@ -29,6 +29,16 @@ contextBridge.exposeInMainWorld('api', {
   spotifyTransfer: call('spotify:transfer'),
   spotifyPlaylists: call('spotify:playlists'),
   spotifyPlayContext: call('spotify:play-context'),
+  listFiles: call('files:list'),
+  addFilePaths: call('files:add-paths'),
+  pickFiles: call('files:pick'),
+  addFileBytes: call('files:add-bytes'),
+  updateFile: call('files:update'),
+  deleteFile: call('files:delete'),
+  openFile: call('files:open'),
+  revealFile: call('files:reveal'),
+  saveFileAs: call('files:save-as'),
+  pathForFile: (file) => webUtils.getPathForFile(file),
   getActive: call('active:get'),
   saveActive: call('active:save'),
   clearActive: call('active:clear'),

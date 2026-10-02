@@ -1,10 +1,15 @@
-const { app, BrowserWindow, ipcMain, shell, safeStorage } = require('electron');
+const { app, BrowserWindow, ipcMain, shell, safeStorage, protocol, dialog, net } = require('electron');
 const spotify = require('./spotify');
+const files = require('./files');
+
+// Must run before the app is ready: lets the UI load attachments through studyfiles://file/<id>.
+protocol.registerSchemesAsPrivileged([{ scheme: 'studyfiles', privileges: { standard: true, secure: true, supportFetchAPI: true, stream: true } }]);
 const path = require('path');
 const crypto = require('crypto');
 const { DatabaseSync } = require('node:sqlite');
 
 let db;
+let filesApi;
 let currentUserId = null;
 
 function initDb() {
@@ -59,6 +64,21 @@ function initDb() {
       user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
       expires_at INTEGER NOT NULL
     );
+    CREATE TABLE IF NOT EXISTS attachments (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      subject_id INTEGER NOT NULL REFERENCES subjects(id) ON DELETE CASCADE,
+      session_id INTEGER REFERENCES sessions(id) ON DELETE SET NULL,
+      name TEXT NOT NULL,
+      original_name TEXT NOT NULL,
+      stored_name TEXT NOT NULL,
+      mime TEXT NOT NULL,
+      size INTEGER NOT NULL,
+      sha256 TEXT NOT NULL,
+      inline INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE INDEX IF NOT EXISTS idx_attachments_subject ON attachments(user_id, subject_id);
     CREATE TABLE IF NOT EXISTS user_settings (
       user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
       key TEXT NOT NULL,
@@ -222,7 +242,9 @@ function registerIpc() {
   });
 
   ipcMain.handle('subjects:delete', (_e, id) => {
-    db.prepare('DELETE FROM subjects WHERE id = ? AND user_id = ?').run(id, requireUser());
+    const uid = requireUser();
+    db.prepare('DELETE FROM subjects WHERE id = ? AND user_id = ?').run(id, uid);
+    filesApi.sweepUser(uid); // the cascade removed the attachment rows: remove their files too
   });
 
   ipcMain.handle('sessions:list', () =>
@@ -378,6 +400,8 @@ app.whenReady().then(() => {
   initDb();
   registerIpc();
   spotify.register({ ipcMain, db, shell, safeStorage, requireUser });
+  filesApi = files.register({ ipcMain, db, app, dialog, shell, protocol, net, BrowserWindow, requireUser, getUserId: () => currentUserId });
+  filesApi.sweepAll();
   createWindow();
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
