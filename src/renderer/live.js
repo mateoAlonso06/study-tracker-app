@@ -288,7 +288,7 @@ function stopModal() {
         hours: Number(m) / 60,
         topic,
         position,
-        notes: a.notes,
+        note: a.notes ? { title: topic, content: a.notes, text: noteText(a.notes) } : null,
         startedAt: a.startedAt,
         pomodoros: a.pomodoros,
       });

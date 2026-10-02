@@ -5,7 +5,9 @@ const state = {
   user: null,
   subjects: [],
   sessions: [],
-  view: 'home', // 'home' | 'subject' | 'live'
+  notes: [],
+  noteFilters: defaultNoteFilters(),
+  view: 'home', // 'home' | 'subject' | 'live' | 'notes'
   subjectId: null,
 };
 
@@ -71,7 +73,11 @@ function lastPosition(sessions) {
 }
 
 async function reload() {
-  [state.subjects, state.sessions] = await Promise.all([window.api.listSubjects(), window.api.listSessions()]);
+  [state.subjects, state.sessions, state.notes] = await Promise.all([
+    window.api.listSubjects(),
+    window.api.listSessions(),
+    window.api.listNotes(),
+  ]);
 }
 
 // ---------- rendering ----------
@@ -95,6 +101,7 @@ function render() {
         </div>
         ${liveItem}
         <button class="nav-item ${state.view === 'home' ? 'active' : ''}" data-action="go-home">Inicio</button>
+        <button class="nav-item ${state.view === 'notes' ? 'active' : ''}" data-action="go-notes">Notas</button>
         ${state.subjects
           .map(
             (s) =>
@@ -105,7 +112,7 @@ function render() {
         <div class="spacer"></div>
         <button class="nav-item" data-action="logout">Cambiar de perfil</button>
       </aside>
-      <main class="main">${state.view === 'live' ? liveView() : state.view === 'subject' ? subjectView(subject) : homeView()}</main>
+      <main class="main">${state.view === 'live' ? liveView() : state.view === 'notes' ? notesView() : state.view === 'subject' ? subjectView(subject) : homeView()}</main>
     </div>`;
   if (state.view === 'live') mountLive();
   else if (live.active) updateLiveUi();
@@ -166,6 +173,19 @@ function heatmap(sessions) {
   return `<div class="heat">${cells.join('')}</div>`;
 }
 
+function sessionNote(note) {
+  return `<div class="session-note">
+    <div class="top">
+      <strong>${esc(note.title || 'Sin título')}</strong>
+      <span>
+        <button class="ghost" data-action="edit-note" data-id="${note.id}">Editar</button>
+        <button class="ghost danger" data-action="delete-note" data-id="${note.id}">Borrar</button>
+      </span>
+    </div>
+    <div class="notes">${notesToHtml(note.content)}</div>
+  </div>`;
+}
+
 function subjectView(subject) {
   const ss = sessionsOf(subject.id);
   const total = ss.reduce((sum, s) => sum + s.hours, 0);
@@ -179,10 +199,11 @@ function subjectView(subject) {
           <strong>${esc(s.topic || 'Sin tema')}</strong>
           <span class="meta">${esc(fmtDate(s.date))} · ${fmtHours(s.hours)}${s.pomodoros ? ` · ${s.pomodoros} ${s.pomodoros === 1 ? 'pomodoro' : 'pomodoros'}` : ''}${s.position ? ` · ${esc(s.position)}` : ''}</span>
         </div>
-        ${s.notes ? `<div class="notes">${notesToHtml(s.notes)}</div>` : ''}
+        ${notesOfSession(s.id).map(sessionNote).join('')}
         <div class="row-actions">
-          <button class="ghost" data-action="edit-session" data-id="${s.id}">Editar</button>
-          <button class="ghost danger" data-action="delete-session" data-id="${s.id}">Borrar</button>
+          <button class="ghost" data-action="new-note-for-session" data-id="${s.id}">+ Nota</button>
+          <button class="ghost" data-action="edit-session" data-id="${s.id}">Editar sesión</button>
+          <button class="ghost danger" data-action="delete-session" data-id="${s.id}">Borrar sesión</button>
         </div>
       </div>`
         )
@@ -304,7 +325,6 @@ function subjectModal(subject) {
 
 function sessionModal(subjectId, session) {
   const defaultPos = session ? session.position : lastPositionHint(subjectId);
-  let quill;
   openModal(
     `<h2>${session ? 'Editar sesión' : 'Registrar sesión manual'}</h2>
      <div class="row2">
@@ -315,7 +335,6 @@ function sessionModal(subjectId, session) {
        <div class="field"><label>Tema o lección</label><input name="topic" value="${esc(session?.topic || '')}" placeholder="IAM" /></div>
        <div class="field"><label>Hasta dónde llegaste</label><input name="position" value="${esc(defaultPos || '')}" placeholder="min 42:10" /></div>
      </div>
-     <div class="field"><label>Notas</label><div class="editor-wrap modal-editor"><div id="modal-editor"></div></div></div>
      ${buttons('Guardar')}`,
     async (data) => {
       await window.api.saveSession({
@@ -325,14 +344,11 @@ function sessionModal(subjectId, session) {
         hours: Number(data.minutes) / 60,
         topic: data.topic,
         position: data.position,
-        notes: getEditorHtml(quill),
       });
       await reload();
       render();
     }
   );
-  modalRoot.querySelector('.modal').classList.add('wide');
-  quill = createEditor(document.getElementById('modal-editor'), session?.notes || '');
 }
 
 function lastPositionHint(subjectId) {
@@ -377,7 +393,8 @@ const actions = {
     sessionModal(s.subjectId, s);
   },
   'delete-session': async (id) => {
-    if (!confirm('¿Borrar esta sesión?')) return;
+    const count = notesOfSession(id).length;
+    if (!confirm(count ? `¿Borrar esta sesión y sus ${count} ${count === 1 ? 'nota' : 'notas'}?` : '¿Borrar esta sesión?')) return;
     await window.api.deleteSession(id);
     await reload();
     render();
@@ -399,11 +416,13 @@ const actions = {
     state.user = null;
     state.subjects = [];
     state.sessions = [];
+    state.notes = [];
+    state.noteFilters = defaultNoteFilters();
     render();
   },
 };
 
-Object.assign(actions, liveActions);
+Object.assign(actions, liveActions, notesActions);
 
 document.addEventListener('click', (e) => {
   const el = e.target.closest('[data-action]');

@@ -196,3 +196,30 @@ label { display: block; font-size: 12px; color: var(--text-2); margin-bottom: 4p
 .session .notes blockquote { margin: 6px 0; padding-left: 10px; border-left: 3px solid var(--border); color: var(--text-2); }
 .session .notes pre { background: var(--surface-2); padding: 8px 10px; border-radius: 6px; overflow-x: auto; font-size: 12px; }
 .session .notes a { color: var(--accent); }
+
+/* notes section */
+.filters { margin-bottom: 18px; }
+.filters .search { width: 100%; padding: 10px 12px; font-size: 15px; }
+.filter-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; align-items: flex-end; }
+.filter-row > div { min-width: 120px; }
+.filter-row select, .filter-row input { width: 100%; }
+.note-group { margin-bottom: 22px; }
+.group-title { font-size: 14px; color: var(--text-2); margin: 0 0 8px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+.note-where { margin: 12px 0 4px; }
+.note { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; margin-bottom: 8px; cursor: pointer; }
+.note:hover { border-color: var(--text-3); }
+.note .top { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
+.note .meta { color: var(--text-3); font-size: 12px; }
+.note .snippet { margin: 6px 0 0; color: var(--text-2); font-size: 13px; }
+.note .row-actions { display: flex; gap: 4px; margin-top: 6px; }
+.note .notes { margin-top: 6px; font-size: 14px; }
+.note .notes.clamp { max-height: 96px; overflow: hidden; -webkit-mask-image: linear-gradient(#000 60%, transparent); mask-image: linear-gradient(#000 60%, transparent); }
+.note .notes p { margin: 0 0 6px; }
+.note .notes h1, .note .notes h2, .note .notes h3 { margin: 8px 0 4px; font-size: 15px; }
+.note .notes ul, .note .notes ol { margin: 4px 0 8px; padding-left: 22px; }
+.note .notes blockquote { margin: 6px 0; padding-left: 10px; border-left: 3px solid var(--border); color: var(--text-2); }
+.note .notes pre { background: var(--surface-2); padding: 8px 10px; border-radius: 6px; overflow-x: auto; font-size: 12px; }
+.note .notes a { color: var(--accent); }
+mark { background: #ffe58a; color: #1d1d1b; border-radius: 2px; padding: 0 1px; }
+.session-note { border-top: 1px dashed var(--border); margin-top: 10px; padding-top: 8px; }
+.session-note .top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }

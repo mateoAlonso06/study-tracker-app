@@ -42,6 +42,19 @@ function initDb() {
       data TEXT NOT NULL,
       updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
+    CREATE TABLE IF NOT EXISTS notes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      subject_id INTEGER NOT NULL REFERENCES subjects(id) ON DELETE CASCADE,
+      session_id INTEGER REFERENCES sessions(id) ON DELETE CASCADE,
+      title TEXT NOT NULL DEFAULT '',
+      content TEXT NOT NULL DEFAULT '',
+      text TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE INDEX IF NOT EXISTS idx_notes_user ON notes(user_id, created_at);
+    CREATE INDEX IF NOT EXISTS idx_notes_session ON notes(session_id);
   `);
   migrate();
 }
@@ -50,6 +63,42 @@ function migrate() {
   const cols = db.prepare('PRAGMA table_info(sessions)').all().map((c) => c.name);
   if (!cols.includes('started_at')) db.exec('ALTER TABLE sessions ADD COLUMN started_at TEXT');
   if (!cols.includes('pomodoros')) db.exec('ALTER TABLE sessions ADD COLUMN pomodoros INTEGER NOT NULL DEFAULT 0');
+  migrateLegacyNotes();
+}
+
+// Notes used to live in sessions.notes. Move them into the notes table (idempotent: the column is cleared).
+function migrateLegacyNotes() {
+  const rows = db.prepare("SELECT id, user_id, subject_id, topic, notes, created_at FROM sessions WHERE notes <> ''").all();
+  if (!rows.length) return;
+  const insert = db.prepare(
+    'INSERT INTO notes (user_id, subject_id, session_id, title, content, text, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+  );
+  const clear = db.prepare("UPDATE sessions SET notes = '' WHERE id = ?");
+  db.exec('BEGIN');
+  try {
+    for (const r of rows) {
+      insert.run(r.user_id, r.subject_id, r.id, r.topic, r.notes, plainText(r.notes), r.created_at, r.created_at);
+      clear.run(r.id);
+    }
+    db.exec('COMMIT');
+  } catch (err) {
+    db.exec('ROLLBACK');
+    throw err;
+  }
+}
+
+function plainText(content) {
+  if (!/^\s*</.test(content)) return content;
+  return content
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&amp;/g, '&')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 function hashPassword(password, salt) {
@@ -125,7 +174,7 @@ function registerIpc() {
 
   ipcMain.handle('sessions:list', () =>
     db.prepare(
-      `SELECT id, subject_id AS subjectId, date, hours, topic, position, notes, started_at AS startedAt, pomodoros
+      `SELECT id, subject_id AS subjectId, date, hours, topic, position, started_at AS startedAt, pomodoros
        FROM sessions WHERE user_id = ? ORDER BY date DESC, id DESC`
     ).all(requireUser())
   );
@@ -137,18 +186,67 @@ function registerIpc() {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(s.date || '')) throw new Error('Invalid date');
     const topic = String(s.topic || '').trim();
     const position = String(s.position || '').trim();
-    const notes = String(s.notes || '');
     if (s.id) {
-      db.prepare('UPDATE sessions SET date = ?, hours = ?, topic = ?, position = ?, notes = ? WHERE id = ? AND user_id = ?')
-        .run(s.date, hours, topic, position, notes, s.id, uid);
+      db.prepare('UPDATE sessions SET date = ?, hours = ?, topic = ?, position = ? WHERE id = ? AND user_id = ?')
+        .run(s.date, hours, topic, position, s.id, uid);
       return s.id;
     }
     const owned = db.prepare('SELECT 1 FROM subjects WHERE id = ? AND user_id = ?').get(s.subjectId, uid);
     if (!owned) throw new Error('Subject not found');
-    const r = db.prepare(
-      'INSERT INTO sessions (user_id, subject_id, date, hours, topic, position, notes, started_at, pomodoros) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
-    ).run(uid, s.subjectId, s.date, hours, topic, position, notes, s.startedAt || null, Math.max(0, Number(s.pomodoros) || 0));
+    db.exec('BEGIN');
+    try {
+      const r = db.prepare(
+        'INSERT INTO sessions (user_id, subject_id, date, hours, topic, position, started_at, pomodoros) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+      ).run(uid, s.subjectId, s.date, hours, topic, position, s.startedAt || null, Math.max(0, Number(s.pomodoros) || 0));
+      const sessionId = Number(r.lastInsertRowid);
+      if (s.note && s.note.content) {
+        db.prepare('INSERT INTO notes (user_id, subject_id, session_id, title, content, text) VALUES (?, ?, ?, ?, ?, ?)')
+          .run(uid, s.subjectId, sessionId, String(s.note.title || '').trim(), String(s.note.content), String(s.note.text || ''));
+      }
+      db.exec('COMMIT');
+      return sessionId;
+    } catch (err) {
+      db.exec('ROLLBACK');
+      throw err;
+    }
+  });
+
+  ipcMain.handle('notes:list', () =>
+    db.prepare(
+      `SELECT id, subject_id AS subjectId, session_id AS sessionId, title, content, text,
+              created_at AS createdAt, updated_at AS updatedAt
+       FROM notes WHERE user_id = ? ORDER BY created_at DESC, id DESC`
+    ).all(requireUser())
+  );
+
+  ipcMain.handle('notes:save', (_e, n) => {
+    const uid = requireUser();
+    const title = String(n.title || '').trim();
+    const content = String(n.content || '');
+    if (!title && !content) throw new Error('Write a title or some content');
+    const subject = db.prepare('SELECT 1 FROM subjects WHERE id = ? AND user_id = ?').get(n.subjectId, uid);
+    if (!subject) throw new Error('Subject not found');
+    let sessionId = null;
+    if (n.sessionId) {
+      const session = db.prepare('SELECT 1 FROM sessions WHERE id = ? AND user_id = ? AND subject_id = ?').get(n.sessionId, uid, n.subjectId);
+      if (!session) throw new Error('Session does not belong to that subject');
+      sessionId = n.sessionId;
+    }
+    const text = String(n.text || '');
+    if (n.id) {
+      db.prepare(
+        `UPDATE notes SET subject_id = ?, session_id = ?, title = ?, content = ?, text = ?, updated_at = CURRENT_TIMESTAMP
+         WHERE id = ? AND user_id = ?`
+      ).run(n.subjectId, sessionId, title, content, text, n.id, uid);
+      return n.id;
+    }
+    const r = db.prepare('INSERT INTO notes (user_id, subject_id, session_id, title, content, text) VALUES (?, ?, ?, ?, ?, ?)')
+      .run(uid, n.subjectId, sessionId, title, content, text);
     return Number(r.lastInsertRowid);
+  });
+
+  ipcMain.handle('notes:delete', (_e, id) => {
+    db.prepare('DELETE FROM notes WHERE id = ? AND user_id = ?').run(id, requireUser());
   });
 
   ipcMain.handle('active:get', () => {
