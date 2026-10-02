@@ -3,7 +3,7 @@
 
 const noteUi = { expanded: new Set() };
 
-const defaultNoteFilters = () => ({ query: '', subjectId: '', from: '', to: '', order: 'desc', group: 'session' });
+const defaultNoteFilters = () => ({ query: '', from: '', to: '', order: 'desc', group: 'session' });
 
 // ---------- helpers ----------
 
@@ -29,6 +29,10 @@ function subjectName(id) {
 
 function notesOfSession(sessionId) {
   return state.notes.filter((n) => n.sessionId === sessionId);
+}
+
+function notesOfSubject(subjectId) {
+  return state.notes.filter((n) => n.subjectId === subjectId);
 }
 
 // Reference date for filtering and ordering: the session's date, or the note's own creation day.
@@ -89,8 +93,7 @@ function filteredNotes() {
   const f = state.noteFilters;
   const terms = queryTerms(f.query);
   const dir = f.order === 'asc' ? 1 : -1;
-  return state.notes
-    .filter((n) => !f.subjectId || n.subjectId === Number(f.subjectId))
+  return notesOfSubject(state.subjectId)
     .filter((n) => !f.from || noteDate(n) >= f.from)
     .filter((n) => !f.to || noteDate(n) <= f.to)
     .filter((n) => matchesQuery(n, terms))
@@ -119,14 +122,14 @@ function noteCard(note, terms) {
 }
 
 function sessionHeading(session) {
-  return `${esc(subjectName(session.subjectId))} · ${esc(session.topic || 'Sin tema')} · ${esc(fmtDate(session.date))} · ${fmtHours(session.hours)}`;
+  return `${esc(session.topic || 'Sin tema')} · ${esc(fmtDate(session.date))} · ${fmtHours(session.hours)}`;
 }
 
 function notesResults() {
   const f = state.noteFilters;
   const terms = queryTerms(f.query);
   const notes = filteredNotes();
-  if (!state.notes.length) {
+  if (!notesOfSubject(state.subjectId).length) {
     return `<div class="empty"><h2>Todavía no hay notas</h2><p>Se crean solas al terminar una sesión con notas, o podés agregar una a mano.</p></div>`;
   }
   if (!notes.length) return `<div class="empty"><h2>Sin resultados</h2><p>Probá con otras palabras o cambiá los filtros.</p></div>`;
@@ -135,7 +138,7 @@ function notesResults() {
   if (f.group !== 'session') {
     return count + notes.map((n) => {
       const session = n.sessionId ? sessionById(n.sessionId) : null;
-      const where = session ? sessionHeading(session) : `${esc(subjectName(n.subjectId))} · Sin sesión`;
+      const where = session ? sessionHeading(session) : 'Sin sesión';
       return `<div class="note-where small muted">${where}</div>${noteCard(n, terms)}`;
     }).join('');
   }
@@ -163,20 +166,15 @@ function renderNotesResults() {
   if (el) el.innerHTML = notesResults();
 }
 
-function notesView() {
+function notesPanel() {
   const f = state.noteFilters;
-  const subjectOptions = state.subjects
-    .map((s) => `<option value="${s.id}" ${String(s.id) === String(f.subjectId) ? 'selected' : ''}>${esc(s.name)}</option>`)
-    .join('');
   const opt = (value, label, current) => `<option value="${value}" ${value === current ? 'selected' : ''}>${label}</option>`;
-  return `<div class="header">
-      <h1>Notas</h1>
-      <div class="actions"><button class="primary" data-action="new-note">+ Nueva nota</button></div>
-    </div>
-    <div class="filters">
-      <input class="search" type="search" data-filter="query" placeholder="Buscar en títulos y contenido" value="${esc(f.query)}" />
+  return `<div class="filters">
+      <div class="search-row">
+        <input class="search" type="search" data-filter="query" placeholder="Buscar en títulos y contenido" value="${esc(f.query)}" />
+        <button class="primary" data-action="new-note">+ Nueva nota</button>
+      </div>
       <div class="filter-row">
-        <div><label>Materia</label><select data-filter="subjectId"><option value="">Todas</option>${subjectOptions}</select></div>
         <div><label>Desde</label><input type="date" data-filter="from" value="${esc(f.from)}" /></div>
         <div><label>Hasta</label><input type="date" data-filter="to" value="${esc(f.to)}" /></div>
         <div><label>Orden</label><select data-filter="order">${opt('desc', 'Más recientes primero', f.order)}${opt('asc', 'Más antiguas primero', f.order)}</select></div>
@@ -200,21 +198,12 @@ function sessionOptions(subjectId, selectedId) {
 }
 
 function noteModal(note, preset = {}) {
-  if (!state.subjects.length) {
-    alert('Primero creá una materia.');
-    return;
-  }
-  const subjectId = note?.subjectId ?? preset.subjectId ?? (state.noteFilters.subjectId ? Number(state.noteFilters.subjectId) : state.subjects[0].id);
+  const subjectId = note?.subjectId ?? preset.subjectId ?? state.subjectId;
   const sessionId = note ? note.sessionId : preset.sessionId ?? null;
   let quill;
   openModal(
     `<h2>${note ? 'Editar nota' : 'Nueva nota'}</h2>
-     <div class="row2">
-       <div class="field"><label>Materia</label>
-         <select name="subjectId">${state.subjects.map((s) => `<option value="${s.id}" ${s.id === subjectId ? 'selected' : ''}>${esc(s.name)}</option>`).join('')}</select>
-       </div>
-       <div class="field"><label>Sesión</label><select name="sessionId">${sessionOptions(subjectId, sessionId)}</select></div>
-     </div>
+     <div class="field"><label>Sesión de ${esc(subjectName(subjectId))}</label><select name="sessionId">${sessionOptions(subjectId, sessionId)}</select></div>
      <div class="field"><label>Título</label><input name="title" value="${esc(note?.title || '')}" placeholder="Opcional" /></div>
      <div class="field"><label>Contenido</label><div class="editor-wrap modal-editor"><div id="modal-editor"></div></div></div>
      ${buttons('Guardar')}`,
@@ -222,7 +211,7 @@ function noteModal(note, preset = {}) {
       const content = getEditorHtml(quill);
       await window.api.saveNote({
         id: note?.id,
-        subjectId: Number(data.subjectId),
+        subjectId,
         sessionId: data.sessionId ? Number(data.sessionId) : null,
         title: data.title,
         content,
@@ -234,18 +223,17 @@ function noteModal(note, preset = {}) {
   );
   modalRoot.querySelector('.modal').classList.add('wide');
   quill = createEditor(document.getElementById('modal-editor'), note?.content || '');
-  const subjectSelect = modalRoot.querySelector('[name=subjectId]');
-  const sessionSelect = modalRoot.querySelector('[name=sessionId]');
-  subjectSelect.addEventListener('change', () => {
-    sessionSelect.innerHTML = sessionOptions(subjectSelect.value, null);
-  });
 }
 
 // ---------- actions ----------
 
 const notesActions = {
-  'go-notes': () => {
-    state.view = 'notes';
+  'tab-sessions': () => {
+    state.subjectTab = 'sessions';
+    render();
+  },
+  'tab-notes': () => {
+    state.subjectTab = 'notes';
     render();
   },
   'new-note': () => noteModal(null),

@@ -7,7 +7,8 @@ const state = {
   sessions: [],
   notes: [],
   noteFilters: defaultNoteFilters(),
-  view: 'home', // 'home' | 'subject' | 'live' | 'notes'
+  view: 'home', // 'home' | 'subject' | 'live'
+  subjectTab: 'sessions', // 'sessions' | 'notes'
   subjectId: null,
 };
 
@@ -101,7 +102,6 @@ function render() {
         </div>
         ${liveItem}
         <button class="nav-item ${state.view === 'home' ? 'active' : ''}" data-action="go-home">Inicio</button>
-        <button class="nav-item ${state.view === 'notes' ? 'active' : ''}" data-action="go-notes">Notas</button>
         ${state.subjects
           .map(
             (s) =>
@@ -112,7 +112,7 @@ function render() {
         <div class="spacer"></div>
         <button class="nav-item" data-action="logout">Cambiar de perfil</button>
       </aside>
-      <main class="main">${state.view === 'live' ? liveView() : state.view === 'notes' ? notesView() : state.view === 'subject' ? subjectView(subject) : homeView()}</main>
+      <main class="main">${state.view === 'live' ? liveView() : state.view === 'subject' ? subjectView(subject) : homeView()}</main>
     </div>`;
   if (state.view === 'live') mountLive();
   else if (live.active) updateLiveUi();
@@ -173,19 +173,6 @@ function heatmap(sessions) {
   return `<div class="heat">${cells.join('')}</div>`;
 }
 
-function sessionNote(note) {
-  return `<div class="session-note">
-    <div class="top">
-      <strong>${esc(note.title || 'Sin título')}</strong>
-      <span>
-        <button class="ghost" data-action="edit-note" data-id="${note.id}">Editar</button>
-        <button class="ghost danger" data-action="delete-note" data-id="${note.id}">Borrar</button>
-      </span>
-    </div>
-    <div class="notes">${notesToHtml(note.content)}</div>
-  </div>`;
-}
-
 function subjectView(subject) {
   const ss = sessionsOf(subject.id);
   const total = ss.reduce((sum, s) => sum + s.hours, 0);
@@ -199,9 +186,8 @@ function subjectView(subject) {
           <strong>${esc(s.topic || 'Sin tema')}</strong>
           <span class="meta">${esc(fmtDate(s.date))} · ${fmtHours(s.hours)}${s.pomodoros ? ` · ${s.pomodoros} ${s.pomodoros === 1 ? 'pomodoro' : 'pomodoros'}` : ''}${s.position ? ` · ${esc(s.position)}` : ''}</span>
         </div>
-        ${notesOfSession(s.id).map(sessionNote).join('')}
         <div class="row-actions">
-          <button class="ghost" data-action="new-note-for-session" data-id="${s.id}">+ Nota</button>
+          <button class="ghost" data-action="new-note-for-session" data-id="${s.id}">+ Nota${notesOfSession(s.id).length ? ` (${notesOfSession(s.id).length})` : ''}</button>
           <button class="ghost" data-action="edit-session" data-id="${s.id}">Editar sesión</button>
           <button class="ghost danger" data-action="delete-session" data-id="${s.id}">Borrar sesión</button>
         </div>
@@ -223,10 +209,15 @@ function subjectView(subject) {
       <div class="stat"><div class="label">Total</div><div class="value">${fmtHours(total)}</div></div>
       <div class="stat"><div class="label">Sesiones</div><div class="value">${ss.length}</div></div>
     </div>
-    <h2>Actividad</h2>
-    ${heatmap(ss)}
-    <h2 style="margin-bottom:10px">Sesiones y notas</h2>
-    ${list}`;
+    <div class="tabs">
+      <button class="tab ${state.subjectTab === 'sessions' ? 'active' : ''}" data-action="tab-sessions">Sesiones (${ss.length})</button>
+      <button class="tab ${state.subjectTab === 'notes' ? 'active' : ''}" data-action="tab-notes">Notas (${notesOfSubject(subject.id).length})</button>
+    </div>
+    ${
+      state.subjectTab === 'notes'
+        ? notesPanel()
+        : `<h2>Actividad</h2>${heatmap(ss)}<h2 style="margin-bottom:10px">Sesiones</h2>${list}`
+    }`;
 }
 
 // ---------- login ----------
@@ -372,8 +363,10 @@ const actions = {
     render();
   },
   'go-subject': (id) => {
+    if (state.subjectId !== id) state.noteFilters = defaultNoteFilters();
     state.view = 'subject';
     state.subjectId = id;
+    state.subjectTab = 'sessions';
     render();
   },
   'new-subject': () => subjectModal(null),

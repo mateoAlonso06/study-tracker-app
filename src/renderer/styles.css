@@ -223,3 +223,11 @@ label { display: block; font-size: 12px; color: var(--text-2); margin-bottom: 4p
 mark { background: #ffe58a; color: #1d1d1b; border-radius: 2px; padding: 0 1px; }
 .session-note { border-top: 1px dashed var(--border); margin-top: 10px; padding-top: 8px; }
 .session-note .top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+
+/* subject tabs */
+.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 18px; }
+.tab { border: none; border-bottom: 2px solid transparent; border-radius: 0; background: transparent; color: var(--text-2); padding: 8px 14px; }
+.tab:hover { background: var(--surface-2); }
+.tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+.search-row { display: flex; gap: 10px; }
+.search-row .search { flex: 1; }

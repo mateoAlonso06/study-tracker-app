@@ -295,6 +295,7 @@ function stopModal() {
       await endLive();
       state.view = 'subject';
       state.subjectId = a.subjectId;
+      state.subjectTab = 'sessions';
       await reload();
       render();
     }
