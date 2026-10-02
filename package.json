@@ -1,6 +1,6 @@
 {
   "name": "study-tracker",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Local study tracker: sessions, notes and streaks per subject",
   "main": "src/main.js",
   "scripts": {
