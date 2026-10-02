@@ -26,7 +26,7 @@ Out: cloud sync, collaboration, full-text search inside PDFs, auto-update, code 
 ## Tasks
 - [x] T1 Storage: `attachments` table, files folder, `studyfiles://` protocol, IPC (add from path/bytes, list, update, delete, open, save as), PDF preview spike
 - [x] T2 "Archivos" tab per subject: add button, drag and drop, grid with thumbnails, preview modal, context menu (open, save as, edit, delete)
-- [ ] T3 Inline images in notes: editor upload handler (toolbar, paste, drop), sanitizer allows only `studyfiles://file/<id>`, orphan sweep
+- [x] T3 Inline images in notes: editor upload handler (toolbar, paste, drop), sanitizer allows only `studyfiles://file/<id>`, orphan sweep
 - [ ] T4 Session cards: file count and "+ Archivo"
 - [ ] T5 Export / import zip (Options menu), tokens excluded, safe import, restart after import
 - [ ] T6 Global search (Ctrl+K): notes, files, sessions, jump to result
@@ -40,7 +40,7 @@ Out: cloud sync, collaboration, full-text search inside PDFs, auto-update, code 
 - A malicious zip (path traversal, bad database) is rejected without touching current data.
 
 ## Progress
-T1 and T2 done (storage, protocol, IPC, Files tab). Next: T3 inline images in notes.
+T1, T2 and T3 done (storage, Files tab, inline images in notes). Next: T4 session file counts.
 
 ## Verification evidence
 - T1 (scripted run against the real app): png/pdf/txt/exe added; >100 MB, empty file, directory and missing path rejected with clear messages;
@@ -51,7 +51,12 @@ T1 and T2 done (storage, protocol, IPC, Files tab). Next: T3 inline images in no
   drop hint shows the subject name; no navigation to the dropped file; image preview, PDF preview in the built-in viewer, prev/next with arrow keys,
   Escape and background click close; search, type and session filters; context menu (Ver, Abrir con el sistema, Mostrar en la carpeta, Guardar una copia, Editar, Borrar);
   rename + link to a session; delete removes the file from disk (5 -> 4); dropping on Inicio shows the hint and does nothing.
+- T3 (scripted runs, two app starts): image button in the toolbar; images inserted by the editor uploader, by a real paste event and by a real OS file drop
+  onto the editor (3/3 stored as inline attachments, no base64, none shown in the Files tab); saved note keeps the references and renders in the Notas tab;
+  click opens the preview without arrows; sanitizer drops remote and base64 images and strips onerror/width, script text only; image-only note is not treated as empty;
+  after an app restart the image of an editor closed without saving is removed, the live-session draft keeps its image (loads, editor shows it, saves into a note);
+  deleting a note frees its images only after the 10 minute guard (checked by aging the rows).
 - Not run: the OS actions themselves (open, reveal in folder, save as dialog), to avoid launching programs on the desktop.
 
 ## Next step
-T3 inline images in notes.
+T4 session cards: file count and "+ Archivo".

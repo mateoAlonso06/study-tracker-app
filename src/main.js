@@ -324,7 +324,9 @@ function registerIpc() {
   });
 
   ipcMain.handle('notes:delete', (_e, id) => {
-    db.prepare('DELETE FROM notes WHERE id = ? AND user_id = ?').run(id, requireUser());
+    const uid = requireUser();
+    db.prepare('DELETE FROM notes WHERE id = ? AND user_id = ?').run(id, uid);
+    filesApi.sweepInline(uid, 10); // images only that note used; recent ones wait in case an editor is still open
   });
 
   ipcMain.handle('active:get', () => {

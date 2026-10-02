@@ -210,7 +210,28 @@ function register({ ipcMain, db, app, dialog, shell, protocol, net, BrowserWindo
     }
   }
 
+  // Images pasted into notes are stored as attachments. Remove the ones no note and no unsaved live-session draft uses
+  // (a note was deleted or edited, or the editor was closed without saving). Recent files are skipped when asked to,
+  // because an editor that is open right now may not have saved its note yet.
+  function sweepInline(uid, minAgeMinutes = 0) {
+    const referenced = new Set();
+    const scan = (text) => {
+      for (const match of String(text || '').matchAll(/studyfiles:\/\/file\/(\d+)/g)) referenced.add(Number(match[1]));
+    };
+    for (const note of db.prepare('SELECT content FROM notes WHERE user_id = ?').all(uid)) scan(note.content);
+    for (const draft of db.prepare('SELECT data FROM active_sessions WHERE user_id = ?').all(uid)) scan(draft.data);
+    const candidates = db
+      .prepare(`SELECT id, stored_name FROM attachments WHERE user_id = ? AND inline = 1 AND created_at <= datetime('now', ?)`)
+      .all(uid, `-${Number(minAgeMinutes) || 0} minutes`);
+    for (const row of candidates) {
+      if (referenced.has(row.id)) continue;
+      db.prepare('DELETE FROM attachments WHERE id = ? AND user_id = ?').run(row.id, uid);
+      if (STORED_NAME.test(row.stored_name)) fs.rmSync(path.join(userDir(uid), row.stored_name), { force: true });
+    }
+  }
+
   function sweepAll() {
+    for (const user of db.prepare('SELECT id FROM users').all()) sweepInline(user.id, 0); // startup: no editor is open yet
     if (!fs.existsSync(filesRoot())) return;
     const users = new Set(db.prepare('SELECT id FROM users').all().map((u) => String(u.id)));
     for (const entry of fs.readdirSync(filesRoot())) {
@@ -219,7 +240,7 @@ function register({ ipcMain, db, app, dialog, shell, protocol, net, BrowserWindo
     }
   }
 
-  return { sweepUser, sweepAll, filesRoot };
+  return { sweepUser, sweepInline, sweepAll, filesRoot };
 }
 
 const isSafeToOpen = (name) => SAFE_TO_OPEN.has(extensionOf(name));

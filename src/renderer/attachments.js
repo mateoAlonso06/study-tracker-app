@@ -138,7 +138,7 @@ function openPreview(id) {
   const file = fileById(id);
   if (!file) return;
   fileUi.previewId = id;
-  const list = previewList();
+  const list = file.inline ? [file] : previewList(); // an image taken from a note has no siblings to browse
   const index = list.findIndex((f) => f.id === id);
   const kind = fileKind(file);
   modalRoot.innerHTML = `<div class="overlay" id="preview-overlay"><div class="modal preview" role="dialog" aria-label="${esc(file.name)}">
@@ -156,6 +156,7 @@ function openPreview(id) {
 }
 
 function stepPreview(delta) {
+  if (fileById(fileUi.previewId)?.inline) return;
   const list = previewList();
   if (list.length < 2) return;
   const index = list.findIndex((f) => f.id === fileUi.previewId);
@@ -283,6 +284,14 @@ document.addEventListener('keydown', (e) => {
 
 document.addEventListener('mousedown', (e) => {
   if (e.target.id === 'preview-overlay') closeModal(); // click on the dark background closes the preview
+});
+
+// Clicking an image inside a saved note opens it large.
+document.addEventListener('click', (e) => {
+  const img = e.target.closest?.('.notes img');
+  if (!img) return;
+  const id = Number((img.getAttribute('src') || '').split('/').pop());
+  if (fileById(id)) openPreview(id);
 });
 
 // ---------- drag and drop of files from the computer ----------

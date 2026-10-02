@@ -375,11 +375,16 @@ function showNote(id, focus = false) {
 
 // Called by render() after the live view markup is in the DOM.
 function mountLive() {
-  live.quill = createEditor(document.getElementById('live-editor'), currentNote().content, (html) => {
-    currentNote().content = html;
-    renderLiveNoteList();
-    persistActiveSoon();
-  });
+  live.quill = createEditor(
+    document.getElementById('live-editor'),
+    currentNote().content,
+    (html) => {
+      currentNote().content = html;
+      renderLiveNoteList();
+      persistActiveSoon();
+    },
+    { subjectId: live.active.subjectId }
+  );
   const title = document.getElementById('live-note-title');
   title.value = currentNote().title;
   title.addEventListener('input', () => {

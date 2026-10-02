@@ -223,7 +223,7 @@ function noteModal(note, preset = {}) {
     }
   );
   modalRoot.querySelector('.modal').classList.add('wide');
-  quill = createEditor(document.getElementById('modal-editor'), note?.content || '');
+  quill = createEditor(document.getElementById('modal-editor'), note?.content || '', null, { subjectId });
 }
 
 // ---------- actions ----------
