@@ -110,6 +110,7 @@ function render() {
           .join('')}
         <button class="nav-item" data-action="new-subject">+ Nueva materia</button>
         <div class="spacer"></div>
+        <div id="spotify-mini">${spotifyMiniHtml()}</div>
         <div class="options">
           <div class="menu" id="options-menu" hidden>
             <div class="menu-label">Tema</div>
@@ -119,6 +120,7 @@ function render() {
                 .join('')}
             </div>
             <div class="menu-sep"></div>
+            <button class="menu-item" data-action="spotify-settings">Spotify<span class="small muted" id="spotify-menu-status">${sp.status?.connected ? 'Conectado' : 'Conectar cuenta'}</span></button>
             <button class="menu-item" data-action="logout">Cerrar sesión<span class="small muted">Volver a elegir perfil</span></button>
           </div>
           <button class="nav-item" data-action="toggle-options" aria-haspopup="true"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg>Opciones</button>
@@ -384,6 +386,7 @@ async function enterApp() {
   state.subjectId = null;
   if (await restoreActive()) state.view = 'live';
   render();
+  spotifyInit();
 }
 
 const actions = {
@@ -444,6 +447,7 @@ const actions = {
       live.active = null;
       document.title = 'Study tracker';
     }
+    spotifyReset();
     const token = getRememberToken();
     if (token) {
       await window.api.revokeRemember(token);
@@ -459,7 +463,7 @@ const actions = {
   },
 };
 
-Object.assign(actions, liveActions, notesActions);
+Object.assign(actions, liveActions, notesActions, spotifyActions);
 
 document.addEventListener('click', (e) => {
   const el = e.target.closest('[data-action]');
