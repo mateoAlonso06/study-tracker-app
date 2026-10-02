@@ -198,13 +198,15 @@ function subjectView(subject) {
   const list = ss.length
     ? ss
         .map(
-          (s) => `<div class="session">
+          (s) => `<div class="session" data-session-id="${s.id}">
         <div class="top">
           <strong>${esc(s.topic || 'Sin tema')}</strong>
           <span class="meta">${esc(fmtDate(s.date))} · ${fmtHours(s.hours)}${s.pomodoros ? ` · ${s.pomodoros} ${s.pomodoros === 1 ? 'pomodoro' : 'pomodoros'}` : ''}${s.position ? ` · ${esc(s.position)}` : ''}</span>
         </div>
         <div class="row-actions">
           <button class="ghost" data-action="new-note-for-session" data-id="${s.id}">+ Nota${notesOfSession(s.id).length ? ` (${notesOfSession(s.id).length})` : ''}</button>
+          <button class="ghost" data-action="add-session-files" data-id="${s.id}">+ Archivo</button>
+          ${filesOfSession(s.id).length ? `<button class="ghost" data-action="show-session-files" data-id="${s.id}">Ver archivos (${filesOfSession(s.id).length})</button>` : ''}
           <button class="ghost" data-action="edit-session" data-id="${s.id}">Editar sesión</button>
           <button class="ghost danger" data-action="delete-session" data-id="${s.id}">Borrar sesión</button>
         </div>

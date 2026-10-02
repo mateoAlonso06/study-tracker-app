@@ -27,7 +27,7 @@ Out: cloud sync, collaboration, full-text search inside PDFs, auto-update, code 
 - [x] T1 Storage: `attachments` table, files folder, `studyfiles://` protocol, IPC (add from path/bytes, list, update, delete, open, save as), PDF preview spike
 - [x] T2 "Archivos" tab per subject: add button, drag and drop, grid with thumbnails, preview modal, context menu (open, save as, edit, delete)
 - [x] T3 Inline images in notes: editor upload handler (toolbar, paste, drop), sanitizer allows only `studyfiles://file/<id>`, orphan sweep
-- [ ] T4 Session cards: file count and "+ Archivo"
+- [x] T4 Session cards: file count and "+ Archivo"
 - [ ] T5 Export / import zip (Options menu), tokens excluded, safe import, restart after import
 - [ ] T6 Global search (Ctrl+K): notes, files, sessions, jump to result
 - [ ] T7 Docs (README, manual), packaged build smoke test, final checks
@@ -40,7 +40,7 @@ Out: cloud sync, collaboration, full-text search inside PDFs, auto-update, code 
 - A malicious zip (path traversal, bad database) is rejected without touching current data.
 
 ## Progress
-T1, T2 and T3 done (storage, Files tab, inline images in notes). Next: T4 session file counts.
+T1-T4 done (storage, Files tab, inline images, session file counts). Next: T5 export/import.
 
 ## Verification evidence
 - T1 (scripted run against the real app): png/pdf/txt/exe added; >100 MB, empty file, directory and missing path rejected with clear messages;
@@ -56,7 +56,9 @@ T1, T2 and T3 done (storage, Files tab, inline images in notes). Next: T4 sessio
   click opens the preview without arrows; sanitizer drops remote and base64 images and strips onerror/width, script text only; image-only note is not treated as empty;
   after an app restart the image of an editor closed without saving is removed, the live-session draft keeps its image (loads, editor shows it, saves into a note);
   deleting a note frees its images only after the 10 minute guard (checked by aging the rows).
-- Not run: the OS actions themselves (open, reveal in folder, save as dialog), to avoid launching programs on the desktop.
+- T4 (scripted run, real drops): session cards show "+ Archivo"; dropping on a session card attaches to that session (hint names the session), card shows "Ver archivos (n)" which opens the Files tab filtered to it;
+  dropping elsewhere attaches to the subject only; deleting a session keeps its files unlinked.
+- Not run: the OS actions themselves (and the native file dialog behind the "+ Archivo" buttons) (open, reveal in folder, save as dialog), to avoid launching programs on the desktop.
 
 ## Next step
-T4 session cards: file count and "+ Archivo".
+T5 export / import zip.

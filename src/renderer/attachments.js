@@ -102,30 +102,39 @@ function filesPanel() {
 
 // ---------- adding ----------
 
-async function addFilesFlow(task) {
+// Runs an add task, refreshes the data and reports the outcome. Returns true when something was processed.
+async function addFilesFlow(task, sessionId = null) {
+  const previousFilter = state.fileFilters.session;
+  if (sessionId) state.fileFilters.session = String(sessionId); // so the Files tab shows where the new files went
   try {
     const result = await task();
-    if (result.canceled) return;
+    if (result.canceled) {
+      state.fileFilters.session = previousFilter;
+      return false;
+    }
     await reload();
     state.subjectTab = 'files';
     render();
     const { added, failed } = result;
     if (added.length) toast(`${added.length} ${added.length === 1 ? 'archivo agregado' : 'archivos agregados'}`);
     if (failed.length) toast(`No se pudo agregar: ${failed.map((x) => `${x.name} (${x.reason})`).join(', ')}`, 'error');
+    return true;
   } catch (err) {
+    state.fileFilters.session = previousFilter;
     toast(cleanError(err), 'error');
+    return false;
   }
 }
 
-const pickFiles = () => addFilesFlow(() => window.api.pickFiles({ subjectId: state.subjectId, sessionId: null }));
+const pickFiles = (sessionId = null) => addFilesFlow(() => window.api.pickFiles({ subjectId: state.subjectId, sessionId }), sessionId);
 
-function dropFiles(fileList) {
+function dropFiles(fileList, sessionId = null) {
   const paths = [...fileList].map((f) => window.api.pathForFile(f)).filter(Boolean);
   if (!paths.length) {
     toast('No se pudo leer lo que soltaste. Probá con el botón + Agregar archivos.', 'error');
     return;
   }
-  return addFilesFlow(() => window.api.addFilePaths({ subjectId: state.subjectId, sessionId: null, paths }));
+  return addFilesFlow(() => window.api.addFilePaths({ subjectId: state.subjectId, sessionId, paths }), sessionId);
 }
 
 // ---------- preview ----------
@@ -238,6 +247,12 @@ const attachmentActions = {
     render();
   },
   'add-files': () => pickFiles(),
+  'add-session-files': (id) => pickFiles(id),
+  'show-session-files': (id) => {
+    state.fileFilters = { ...defaultFileFilters(), session: String(id) };
+    state.subjectTab = 'files';
+    render();
+  },
   'open-file': (id) => {
     const file = fileById(id);
     if (!file) return;
@@ -298,20 +313,29 @@ document.addEventListener('click', (e) => {
 
 const dragHasFiles = (e) => !fileUi.internalDrag && [...(e.dataTransfer?.types || [])].includes('Files');
 const insideEditor = (e) => !!e.target.closest?.('.ql-editor');
+const sessionUnder = (e) => {
+  const card = state.view === 'subject' ? e.target.closest?.('.session[data-session-id]') : null;
+  return card ? sessionById(Number(card.dataset.sessionId)) : null;
+};
 
-function dropHint(show) {
+function dropHint(show, session = null) {
   let hint = document.getElementById('drop-hint');
   if (!show) {
     hint?.remove();
     return;
   }
-  if (hint) return;
-  hint = document.createElement('div');
-  hint.id = 'drop-hint';
-  hint.className = 'drop-hint';
+  if (!hint) {
+    hint = document.createElement('div');
+    hint.id = 'drop-hint';
+    hint.className = 'drop-hint';
+    document.body.appendChild(hint);
+  }
   const subject = state.view === 'subject' ? state.subjects.find((s) => s.id === state.subjectId) : null;
-  hint.textContent = subject ? `Soltá los archivos para agregarlos a "${subject.name}"` : 'Abrí una materia para poder agregar archivos';
-  document.body.appendChild(hint);
+  hint.textContent = session
+    ? `Soltá los archivos para adjuntarlos a la sesión "${session.topic || fmtDate(session.date)}"`
+    : subject
+      ? `Soltá los archivos para agregarlos a "${subject.name}"`
+      : 'Abrí una materia para poder agregar archivos';
 }
 
 document.addEventListener('dragstart', () => {
@@ -326,7 +350,7 @@ document.addEventListener('dragover', (e) => {
   if (!dragHasFiles(e) || insideEditor(e)) return;
   e.preventDefault(); // without this the browser would navigate to the dropped file
   e.dataTransfer.dropEffect = state.view === 'subject' ? 'copy' : 'none';
-  dropHint(true);
+  dropHint(true, sessionUnder(e));
 });
 
 document.addEventListener('dragleave', (e) => {
@@ -341,5 +365,5 @@ document.addEventListener('drop', (e) => {
     toast('Abrí una materia para poder agregar archivos.', 'error');
     return;
   }
-  dropFiles(e.dataTransfer.files);
+  dropFiles(e.dataTransfer.files, sessionUnder(e)?.id ?? null);
 });
