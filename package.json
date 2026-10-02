@@ -4,13 +4,74 @@
   "description": "Local study tracker: sessions, notes and streaks per subject",
   "main": "src/main.js",
   "scripts": {
-    "start": "electron . --no-sandbox"
+    "start": "node scripts/start.js",
+    "dist": "electron-builder --linux --win",
+    "dist:linux": "electron-builder --linux",
+    "dist:win": "electron-builder --win"
   },
   "license": "MIT",
   "devDependencies": {
-    "electron": "^44.5.1"
+    "electron": "^44.5.1",
+    "electron-builder": "^26.15.3"
   },
   "dependencies": {
     "quill": "^2.0.3"
-  }
+  },
+  "author": "mateoAlonso06",
+  "homepage": "https://github.com/mateoAlonso06",
+  "build": {
+    "appId": "com.studytracker.app",
+    "productName": "Study Tracker",
+    "copyright": "Copyright (c) 2026 mateoAlonso06",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "src/**/*",
+      "build/icon.png",
+      "package.json"
+    ],
+    "artifactName": "StudyTracker-${version}-${os}-${arch}.${ext}",
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Education",
+      "icon": "build/icon.png",
+      "maintainer": "mateoAlonso06 <mateoAlonso06@users.noreply.github.com>",
+      "synopsis": "Track study sessions, notes and streaks",
+      "syncDesktopName": true
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "artifactName": "StudyTracker-Setup-${version}-win-${arch}.${ext}"
+    },
+    "portable": {
+      "artifactName": "StudyTracker-Portable-${version}-win-${arch}.${ext}"
+    }
+  },
+  "desktopName": "study-tracker.desktop"
 }

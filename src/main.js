@@ -357,6 +357,23 @@ function createWindow() {
   win.loadFile(path.join(__dirname, 'renderer', 'index.html'));
 }
 
+// Keep the data folder stable no matter how the app is packaged (dev run, AppImage, Windows installer).
+if (!app.commandLine.hasSwitch('user-data-dir')) {
+  app.setPath('userData', path.join(app.getPath('appData'), 'study-tracker'));
+}
+
+// Two instances on the same database would only cause trouble: focus the existing window instead.
+if (!app.requestSingleInstanceLock()) {
+  app.quit();
+} else {
+  app.on('second-instance', () => {
+    const win = BrowserWindow.getAllWindows()[0];
+    if (!win) return;
+    if (win.isMinimized()) win.restore();
+    win.focus();
+  });
+}
+
 app.whenReady().then(() => {
   initDb();
   registerIpc();
