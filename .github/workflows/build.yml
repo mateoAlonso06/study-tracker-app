@@ -39,7 +39,9 @@ jobs:
       - run: npm ci
 
       - name: Build
-        run: npm run ${{ matrix.script }}
+        # --publish never: on tag builds electron-builder would try to publish by itself and ask for GH_TOKEN.
+        # Attaching files to the release is handled by the last step.
+        run: npm run ${{ matrix.script }} -- --publish never
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
 
