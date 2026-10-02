@@ -25,7 +25,7 @@ Out: cloud sync, collaboration, full-text search inside PDFs, auto-update, code 
 
 ## Tasks
 - [x] T1 Storage: `attachments` table, files folder, `studyfiles://` protocol, IPC (add from path/bytes, list, update, delete, open, save as), PDF preview spike
-- [ ] T2 "Archivos" tab per subject: add button, drag and drop, grid with thumbnails, preview modal, context menu (open, save as, edit, delete)
+- [x] T2 "Archivos" tab per subject: add button, drag and drop, grid with thumbnails, preview modal, context menu (open, save as, edit, delete)
 - [ ] T3 Inline images in notes: editor upload handler (toolbar, paste, drop), sanitizer allows only `studyfiles://file/<id>`, orphan sweep
 - [ ] T4 Session cards: file count and "+ Archivo"
 - [ ] T5 Export / import zip (Options menu), tokens excluded, safe import, restart after import
@@ -40,14 +40,18 @@ Out: cloud sync, collaboration, full-text search inside PDFs, auto-update, code 
 - A malicious zip (path traversal, bad database) is rejected without touching current data.
 
 ## Progress
-T1 done: storage, protocol, IPC and PDF preview verified. Next: T2 UI.
+T1 and T2 done (storage, protocol, IPC, Files tab). Next: T3 inline images in notes.
 
 ## Verification evidence
 - T1 (scripted run against the real app): png/pdf/txt/exe added; >100 MB, empty file, directory and missing path rejected with clear messages;
   image served through studyfiles:// (640x400 loads); unknown id, wrong host, other user and no user all get 404;
   PDF rendered by Chromium's built-in viewer inside an iframe (thumbnails, zoom, print); delete removes the file from disk;
   safe-to-open rule checked for 14 extensions (exe, sh, AppImage, desktop, jar, bat, msi, ps1, html, svg never open directly).
+- T2 (scripted run, real file drops from the OS through the debug port): 6 files dropped, 5 added, 100 MB+ rejected with a toast; tab count updates;
+  drop hint shows the subject name; no navigation to the dropped file; image preview, PDF preview in the built-in viewer, prev/next with arrow keys,
+  Escape and background click close; search, type and session filters; context menu (Ver, Abrir con el sistema, Mostrar en la carpeta, Guardar una copia, Editar, Borrar);
+  rename + link to a session; delete removes the file from disk (5 -> 4); dropping on Inicio shows the hint and does nothing.
 - Not run: the OS actions themselves (open, reveal in folder, save as dialog), to avoid launching programs on the desktop.
 
 ## Next step
-T2 "Archivos" tab.
+T3 inline images in notes.

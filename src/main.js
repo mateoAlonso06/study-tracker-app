@@ -372,8 +372,8 @@ function createWindow() {
     return { action: 'deny' };
   });
   win.webContents.on('will-navigate', (e, url) => {
-    if (url.startsWith('file://')) return;
-    e.preventDefault();
+    if (url === win.webContents.getURL()) return; // reloading the app itself is fine
+    e.preventDefault(); // anything else, such as a dropped file, must never replace the app
     if (/^https?:\/\//.test(url)) shell.openExternal(url);
   });
   win.loadFile(path.join(__dirname, 'renderer', 'index.html'));

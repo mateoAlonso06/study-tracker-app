@@ -6,7 +6,9 @@ const state = {
   subjects: [],
   sessions: [],
   notes: [],
+  files: [],
   noteFilters: defaultNoteFilters(),
+  fileFilters: defaultFileFilters(),
   view: 'home', // 'home' | 'subject' | 'live'
   subjectTab: 'sessions', // 'sessions' | 'notes'
   subjectId: null,
@@ -74,10 +76,11 @@ function lastPosition(sessions) {
 }
 
 async function reload() {
-  [state.subjects, state.sessions, state.notes] = await Promise.all([
+  [state.subjects, state.sessions, state.notes, state.files] = await Promise.all([
     window.api.listSubjects(),
     window.api.listSessions(),
     window.api.listNotes(),
+    window.api.listFiles(),
   ]);
 }
 
@@ -226,11 +229,14 @@ function subjectView(subject) {
     <div class="tabs">
       <button class="tab ${state.subjectTab === 'sessions' ? 'active' : ''}" data-action="tab-sessions">Sesiones (${ss.length})</button>
       <button class="tab ${state.subjectTab === 'notes' ? 'active' : ''}" data-action="tab-notes">Notas (${notesOfSubject(subject.id).length})</button>
+      <button class="tab ${state.subjectTab === 'files' ? 'active' : ''}" data-action="tab-files">Archivos (${filesOfSubject(subject.id).length})</button>
     </div>
     ${
       state.subjectTab === 'notes'
         ? notesPanel()
-        : `<h2>Actividad</h2>${heatmap(ss)}<h2 style="margin-bottom:10px">Sesiones</h2>${list}`
+        : state.subjectTab === 'files'
+          ? filesPanel()
+          : `<h2>Actividad</h2>${heatmap(ss)}<h2 style="margin-bottom:10px">Sesiones</h2>${list}`
     }`;
 }
 
@@ -396,7 +402,10 @@ const actions = {
     render();
   },
   'go-subject': (id) => {
-    if (state.subjectId !== id) state.noteFilters = defaultNoteFilters();
+    if (state.subjectId !== id) {
+      state.noteFilters = defaultNoteFilters();
+      state.fileFilters = defaultFileFilters();
+    }
     state.view = 'subject';
     state.subjectId = id;
     state.subjectTab = 'sessions';
@@ -458,12 +467,14 @@ const actions = {
     state.subjects = [];
     state.sessions = [];
     state.notes = [];
+    state.files = [];
     state.noteFilters = defaultNoteFilters();
+    state.fileFilters = defaultFileFilters();
     render();
   },
 };
 
-Object.assign(actions, liveActions, notesActions, spotifyActions);
+Object.assign(actions, liveActions, notesActions, spotifyActions, attachmentActions);
 
 document.addEventListener('click', (e) => {
   const el = e.target.closest('[data-action]');
