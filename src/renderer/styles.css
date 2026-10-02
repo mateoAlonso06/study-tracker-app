@@ -14,25 +14,25 @@
   --heat-1: #b8d0f5;
   --heat-2: #6c9be8;
   --heat-3: #2f6fdb;
+  color-scheme: light;
 }
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #161615;
-    --surface: #1f1f1d;
-    --surface-2: #272725;
-    --border: #3a3a37;
-    --text: #ecebe6;
-    --text-2: #a8a79f;
-    --text-3: #77766f;
-    --accent: #6c9be8;
-    --accent-bg: #1f2d47;
-    --danger: #e5766b;
-    --ok: #5fc08a;
-    --heat-0: #2a2a27;
-    --heat-1: #25406b;
-    --heat-2: #3a68b5;
-    --heat-3: #6c9be8;
-  }
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #161615;
+  --surface: #1f1f1d;
+  --surface-2: #272725;
+  --border: #3a3a37;
+  --text: #ecebe6;
+  --text-2: #a8a79f;
+  --text-3: #77766f;
+  --accent: #6c9be8;
+  --accent-bg: #1f2d47;
+  --danger: #e5766b;
+  --ok: #5fc08a;
+  --heat-0: #2a2a27;
+  --heat-1: #25406b;
+  --heat-2: #3a68b5;
+  --heat-3: #6c9be8;
 }
 
 * { box-sizing: border-box; }
@@ -231,3 +231,30 @@ mark { background: #ffe58a; color: #1d1d1b; border-radius: 2px; padding: 0 1px; 
 .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
 .search-row { display: flex; gap: 10px; }
 .search-row .search { flex: 1; }
+
+/* sidebar icons and options menu */
+.nav-item { display: flex; align-items: center; gap: 8px; width: 100%; }
+.icon { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.options { position: relative; }
+.menu { position: absolute; bottom: calc(100% + 6px); left: 0; right: 0; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 8px; z-index: 5; box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18); }
+.menu-label { font-size: 12px; color: var(--text-2); margin: 2px 4px 6px; }
+.menu-sep { height: 1px; background: var(--border); margin: 8px 0; }
+.segmented { display: flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.segmented button { flex: 1; border: none; border-radius: 0; background: transparent; padding: 5px 4px; font-size: 13px; color: var(--text-2); }
+.segmented button + button { border-left: 1px solid var(--border); }
+.segmented button.active { background: var(--accent-bg); color: var(--accent); }
+.menu-item { display: flex; flex-direction: column; align-items: flex-start; width: 100%; border: none; background: transparent; text-align: left; padding: 6px 8px; border-radius: 6px; }
+.menu-item:hover { background: var(--surface-2); }
+
+/* editor dark-mode friendliness */
+.ql-snow .ql-picker-label { color: var(--text-2); }
+.ql-snow .ql-tooltip { background: var(--surface); color: var(--text); border-color: var(--border); box-shadow: none; }
+.ql-snow .ql-tooltip input[type=text] { background: var(--surface-2); color: var(--text); border-color: var(--border); }
+.ql-snow .ql-tooltip a.ql-action::after, .ql-snow .ql-tooltip a.ql-remove::before { color: var(--accent); }
+
+/* layout and contrast fixes */
+.card .footer { flex-wrap: wrap; }
+.card .footer > .small { flex: 1 1 100%; }
+.card .footer > span:last-child { display: flex; gap: 6px; margin-left: auto; }
+.card .footer button, .live-bar button, .header .actions button { white-space: nowrap; }
+:root[data-theme="dark"] button.primary { color: #0e1b33; }

@@ -101,7 +101,7 @@ function render() {
           <strong>${esc(state.user.name)}</strong>
         </div>
         ${liveItem}
-        <button class="nav-item ${state.view === 'home' ? 'active' : ''}" data-action="go-home">Inicio</button>
+        <button class="nav-item ${state.view === 'home' ? 'active' : ''}" data-action="go-home"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v9.5h13V10"/><path d="M10 19.5v-5h4v5"/></svg>Inicio</button>
         ${state.subjects
           .map(
             (s) =>
@@ -110,7 +110,19 @@ function render() {
           .join('')}
         <button class="nav-item" data-action="new-subject">+ Nueva materia</button>
         <div class="spacer"></div>
-        <button class="nav-item" data-action="logout">Cambiar de perfil</button>
+        <div class="options">
+          <div class="menu" id="options-menu" hidden>
+            <div class="menu-label">Tema</div>
+            <div class="segmented">
+              ${[['light', 'Claro'], ['dark', 'Oscuro'], ['system', 'Sistema']]
+                .map(([value, label]) => `<button class="${getThemePref() === value ? 'active' : ''}" data-action="set-theme" data-theme="${value}">${label}</button>`)
+                .join('')}
+            </div>
+            <div class="menu-sep"></div>
+            <button class="menu-item" data-action="logout">Cerrar sesión<span class="small muted">Volver a elegir perfil</span></button>
+          </div>
+          <button class="nav-item" data-action="toggle-options" aria-haspopup="true"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg>Opciones</button>
+        </div>
       </aside>
       <main class="main">${state.view === 'live' ? liveView() : state.view === 'subject' ? subjectView(subject) : homeView()}</main>
     </div>`;
@@ -369,6 +381,14 @@ const actions = {
     state.subjectTab = 'sessions';
     render();
   },
+  'toggle-options': () => {
+    const menu = document.getElementById('options-menu');
+    menu.hidden = !menu.hidden;
+  },
+  'set-theme': (_id, el) => {
+    setThemePref(el.dataset.theme);
+    document.querySelectorAll('[data-action=set-theme]').forEach((b) => b.classList.toggle('active', b === el));
+  },
   'new-subject': () => subjectModal(null),
   'edit-subject': (id) => subjectModal(state.subjects.find((s) => s.id === id)),
   'delete-subject': async (id) => {
@@ -427,8 +447,16 @@ document.addEventListener('click', (e) => {
   Promise.resolve(fn(id, el)).catch((err) => alert(cleanError(err)));
 });
 
+document.addEventListener('click', (e) => {
+  const menu = document.getElementById('options-menu');
+  if (menu && !menu.hidden && !e.target.closest('.options')) menu.hidden = true;
+});
+
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') closeModal();
+  if (e.key !== 'Escape') return;
+  closeModal();
+  const menu = document.getElementById('options-menu');
+  if (menu) menu.hidden = true;
 });
 
 render();
