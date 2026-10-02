@@ -53,6 +53,11 @@ function initDb() {
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
       updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
+    CREATE TABLE IF NOT EXISTS remember_tokens (
+      token_hash TEXT PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      expires_at INTEGER NOT NULL
+    );
     CREATE INDEX IF NOT EXISTS idx_notes_user ON notes(user_id, created_at);
     CREATE INDEX IF NOT EXISTS idx_notes_session ON notes(session_id);
   `);
@@ -105,6 +110,10 @@ function hashPassword(password, salt) {
   return crypto.scryptSync(password, salt, 64).toString('hex');
 }
 
+const REMEMBER_DAYS = 90;
+const sha256 = (value) => crypto.createHash('sha256').update(value).digest('hex');
+const rememberExpiry = () => Date.now() + REMEMBER_DAYS * 24 * 60 * 60 * 1000;
+
 function requireUser() {
   if (currentUserId === null) throw new Error('Not signed in');
   return currentUserId;
@@ -149,6 +158,36 @@ function registerIpc() {
 
   ipcMain.handle('users:logout', () => {
     currentUserId = null;
+  });
+
+  // "Keep me signed in": the device keeps a random token, the database only keeps its hash.
+  ipcMain.handle('remember:create', (_e, previous) => {
+    const uid = requireUser();
+    db.prepare('DELETE FROM remember_tokens WHERE expires_at < ?').run(Date.now());
+    if (previous) db.prepare('DELETE FROM remember_tokens WHERE token_hash = ?').run(sha256(String(previous)));
+    const token = crypto.randomBytes(32).toString('hex');
+    db.prepare('INSERT INTO remember_tokens (token_hash, user_id, expires_at) VALUES (?, ?, ?)').run(sha256(token), uid, rememberExpiry());
+    return token;
+  });
+
+  ipcMain.handle('remember:resume', (_e, token) => {
+    if (!token) return null;
+    const hash = sha256(String(token));
+    const row = db.prepare('SELECT user_id, expires_at FROM remember_tokens WHERE token_hash = ?').get(hash);
+    if (!row) return null;
+    if (row.expires_at < Date.now()) {
+      db.prepare('DELETE FROM remember_tokens WHERE token_hash = ?').run(hash);
+      return null;
+    }
+    const user = db.prepare('SELECT id, name FROM users WHERE id = ?').get(row.user_id);
+    if (!user) return null;
+    db.prepare('UPDATE remember_tokens SET expires_at = ? WHERE token_hash = ?').run(rememberExpiry(), hash);
+    currentUserId = user.id;
+    return { id: user.id, name: user.name };
+  });
+
+  ipcMain.handle('remember:revoke', (_e, token) => {
+    if (token) db.prepare('DELETE FROM remember_tokens WHERE token_hash = ?').run(sha256(String(token)));
   });
 
   ipcMain.handle('subjects:list', () =>

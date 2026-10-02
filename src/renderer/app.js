@@ -249,6 +249,7 @@ async function renderLogin() {
       )
       .join('')}
     <button data-action="new-user" style="margin-top:8px">+ Nuevo perfil</button>
+    <label class="check keep"><input type="checkbox" id="keep-session" /> Mantener sesión activa</label>
   </div>`;
 }
 
@@ -287,9 +288,11 @@ function userModal() {
     `<h2>Nuevo perfil</h2>
      <div class="field"><label>Nombre</label><input name="name" /></div>
      <div class="field"><label>Contraseña (opcional)</label><input name="password" type="password" /></div>
+     <div class="field"><label class="check"><input type="checkbox" name="keep" ${keepChecked() ? 'checked' : ''} /> Mantener sesión activa</label><p class="small muted">No te pedirá la contraseña en este equipo hasta que cierres sesión.</p></div>
      ${buttons('Crear perfil')}`,
-    async ({ name, password }) => {
+    async ({ name, password, keep }) => {
       state.user = await window.api.createUser({ name, password });
+      await applyRemember(keep === 'on');
       await enterApp();
     }
   );
@@ -299,9 +302,11 @@ function passwordModal(id, name) {
   openModal(
     `<h2>Hola, ${esc(name)}</h2>
      <div class="field"><label>Contraseña</label><input name="password" type="password" /></div>
+     <div class="field"><label class="check"><input type="checkbox" name="keep" ${keepChecked() ? 'checked' : ''} /> Mantener sesión activa</label><p class="small muted">No te pedirá la contraseña en este equipo hasta que cierres sesión.</p></div>
      ${buttons('Entrar')}`,
-    async ({ password }) => {
+    async ({ password, keep }) => {
       state.user = await window.api.login({ id, password });
+      await applyRemember(keep === 'on');
       await enterApp();
     }
   );
@@ -360,6 +365,19 @@ function lastPositionHint(subjectId) {
 
 // ---------- actions ----------
 
+const keepChecked = () => document.getElementById('keep-session')?.checked === true;
+
+// Called right after a successful sign-in: remember this device, or forget a previous one.
+async function applyRemember(keep) {
+  const previous = getRememberToken();
+  if (keep) {
+    setRememberToken(await window.api.createRemember(previous));
+  } else if (previous) {
+    await window.api.revokeRemember(previous);
+    clearRememberToken();
+  }
+}
+
 async function enterApp() {
   await reload();
   state.view = 'home';
@@ -416,6 +434,7 @@ const actions = {
   'pick-user': async (id, el) => {
     if (el.dataset.protected === 'true') return passwordModal(id, el.dataset.name);
     state.user = await window.api.login({ id });
+    await applyRemember(keepChecked());
     await enterApp();
   },
   logout: async () => {
@@ -424,6 +443,11 @@ const actions = {
       stopLoop();
       live.active = null;
       document.title = 'Study tracker';
+    }
+    const token = getRememberToken();
+    if (token) {
+      await window.api.revokeRemember(token);
+      clearRememberToken();
     }
     await window.api.logout();
     state.user = null;
@@ -459,4 +483,22 @@ document.addEventListener('keydown', (e) => {
   if (menu) menu.hidden = true;
 });
 
-render();
+async function boot() {
+  const token = getRememberToken();
+  if (token) {
+    try {
+      const user = await window.api.resumeRemember(token);
+      if (user) {
+        state.user = user;
+        await enterApp();
+        return;
+      }
+    } catch (err) {
+      console.error('Could not resume the saved session', err);
+    }
+    clearRememberToken();
+  }
+  render();
+}
+
+boot();

@@ -258,3 +258,9 @@ mark { background: #ffe58a; color: #1d1d1b; border-radius: 2px; padding: 0 1px; 
 .card .footer > span:last-child { display: flex; gap: 6px; margin-left: auto; }
 .card .footer button, .live-bar button, .header .actions button { white-space: nowrap; }
 :root[data-theme="dark"] button.primary { color: #0e1b33; }
+
+/* keep session checkbox */
+label.check { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--text); margin: 0; cursor: pointer; }
+label.check input { width: auto; padding: 0; }
+.login .keep { margin-top: 18px; }
+.field .check + p { margin: 4px 0 0 26px; }

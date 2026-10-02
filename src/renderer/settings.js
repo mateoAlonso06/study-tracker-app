@@ -28,6 +28,33 @@ function setThemePref(pref) {
   applyTheme(pref);
 }
 
+// "Keep me signed in" token (random string; the database stores only its hash).
+const REMEMBER_KEY = 'rememberToken';
+
+function getRememberToken() {
+  try {
+    return localStorage.getItem(REMEMBER_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function setRememberToken(token) {
+  try {
+    localStorage.setItem(REMEMBER_KEY, token);
+  } catch {
+    /* storage unavailable: the session will not be kept */
+  }
+}
+
+function clearRememberToken() {
+  try {
+    localStorage.removeItem(REMEMBER_KEY);
+  } catch {
+    /* nothing to clear */
+  }
+}
+
 systemDark.addEventListener('change', () => {
   if (getThemePref() === 'system') applyTheme();
 });
