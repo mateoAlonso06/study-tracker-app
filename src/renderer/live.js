@@ -197,12 +197,11 @@ function liveView() {
       <aside class="live-notes">
         <div class="live-notes-head"><strong>Notas</strong><button data-action="live-add-note">+ Nota</button></div>
         <div class="live-note-list" id="live-note-list"></div>
-        <div class="live-notes-hint small muted">Arrastrá para reordenar</div>
+        <div class="live-notes-hint small muted">Arrastrá para reordenar. Clic derecho para borrar.</div>
       </aside>
       <section class="live-editor-col">
         <div class="live-title-row">
           <input id="live-note-title" placeholder="Título de la nota" />
-          <button class="ghost danger" data-action="live-delete-note">Borrar nota</button>
         </div>
         <div class="editor-wrap"><div id="live-editor"></div></div>
       </section>
@@ -281,6 +280,15 @@ function bindNoteDrag(list) {
     clearMarks();
   });
 
+  // Right click on a note: the only way to delete it.
+  list.addEventListener('contextmenu', (e) => {
+    const item = e.target.closest('.live-note');
+    if (!item) return;
+    e.preventDefault();
+    const id = Number(item.dataset.id);
+    showContextMenu(e.clientX, e.clientY, [{ label: 'Borrar', danger: true, onClick: () => deleteLiveNote(id) }]);
+  });
+
   // Keyboard alternative: Alt + Arrow Up/Down moves the focused note.
   list.addEventListener('keydown', (e) => {
     const item = e.target.closest('.live-note');
@@ -295,6 +303,62 @@ function bindNoteDrag(list) {
     list.querySelector(`[data-id="${id}"]`)?.focus();
   });
 }
+
+// Deletes a note from the live session. Keeps the current note unless it is the one removed.
+function deleteLiveNote(id) {
+  const a = live.active;
+  const note = a.notes.find((n) => n.id === id);
+  if (!note) return;
+  if ((note.title || note.content) && !confirm('¿Borrar esta nota?')) return;
+  const index = a.notes.indexOf(note);
+  a.notes.splice(index, 1);
+  if (!a.notes.length) a.notes.push({ id: ++a.noteSeq, title: '', content: '' });
+  if (a.currentNote === id) showNote(a.notes[Math.min(index, a.notes.length - 1)].id);
+  else {
+    renderLiveNoteList();
+    persistActiveSoon();
+  }
+}
+
+// Small context menu shown at the pointer. Closes on any click, Escape, scroll or resize.
+function showContextMenu(x, y, items) {
+  closeContextMenu();
+  const menu = document.createElement('div');
+  menu.className = 'context-menu';
+  menu.id = 'context-menu';
+  menu.setAttribute('role', 'menu');
+  for (const item of items) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.setAttribute('role', 'menuitem');
+    button.className = item.danger ? 'danger' : '';
+    button.textContent = item.label;
+    button.addEventListener('click', () => {
+      closeContextMenu();
+      item.onClick();
+    });
+    menu.appendChild(button);
+  }
+  document.body.appendChild(menu);
+  const { width, height } = menu.getBoundingClientRect();
+  menu.style.left = `${Math.max(4, Math.min(x, window.innerWidth - width - 4))}px`;
+  menu.style.top = `${Math.max(4, Math.min(y, window.innerHeight - height - 4))}px`;
+  menu.querySelector('button')?.focus();
+}
+
+function closeContextMenu() {
+  document.getElementById('context-menu')?.remove();
+}
+
+document.addEventListener('mousedown', (e) => {
+  if (!e.target.closest('#context-menu')) closeContextMenu();
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeContextMenu();
+});
+window.addEventListener('resize', closeContextMenu);
+window.addEventListener('blur', closeContextMenu);
+document.addEventListener('scroll', closeContextMenu, true);
 
 function showNote(id, focus = false) {
   const a = live.active;
@@ -473,15 +537,6 @@ const liveActions = {
     showNote(note.id, true);
   },
   'live-select-note': (id) => showNote(id),
-  'live-delete-note': () => {
-    const a = live.active;
-    const note = currentNote();
-    if ((note.title || note.content) && !confirm('¿Borrar esta nota?')) return;
-    const index = a.notes.indexOf(note);
-    a.notes.splice(index, 1);
-    if (!a.notes.length) a.notes.push({ id: ++a.noteSeq, title: '', content: '' });
-    showNote(a.notes[Math.min(index, a.notes.length - 1)].id);
-  },
   'live-stop': () => stopModal(),
   'live-discard': async () => {
     if (!confirm('¿Descartar esta sesión y sus notas? No se puede deshacer.')) return;
