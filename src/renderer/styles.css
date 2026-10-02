@@ -269,3 +269,8 @@ label.check input { width: auto; padding: 0; }
 .filter-row input, .filter-row select, .filter-row button { height: 38px; padding-top: 0; padding-bottom: 0; }
 .filter-row button { white-space: nowrap; }
 .search-row .search, .search-row button { height: 40px; padding-top: 0; padding-bottom: 0; }
+
+/* modal forms: full-width fields and a single footer row */
+.field input:not([type=checkbox]):not([type=radio]), .field select { width: 100%; }
+.modal .buttons { align-items: center; }
+.modal .buttons .left { margin-right: auto; }

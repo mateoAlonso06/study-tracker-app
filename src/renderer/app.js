@@ -278,7 +278,8 @@ const closeModal = () => {
 
 const cleanError = (err) => String(err.message || err).replace(/^Error invoking remote method '[^']+': (Error: )?/, '');
 
-const buttons = (label) => `<div class="buttons">
+const buttons = (label, left = '') => `<div class="buttons">
+  ${left}
   <button type="button" data-action="close-modal">Cancelar</button>
   <button type="submit" class="primary">${label}</button>
 </div>`;
@@ -317,8 +318,7 @@ function subjectModal(subject) {
     `<h2>${subject ? 'Editar materia' : 'Nueva materia'}</h2>
      <div class="field"><label>Nombre</label><input name="name" value="${esc(subject?.name || '')}" /></div>
      <div class="field"><label>Meta semanal en horas (0 = sin meta)</label><input name="weeklyGoal" type="number" min="0" step="0.5" value="${subject?.weeklyGoal ?? 5}" /></div>
-     ${buttons('Guardar')}
-     ${subject ? '<div class="buttons" style="justify-content:flex-start"><button type="button" class="ghost danger" data-action="delete-subject" data-id="' + subject.id + '">Borrar materia y sus sesiones</button></div>' : ''}`,
+     ${buttons('Guardar', subject ? `<button type="button" class="ghost danger left" data-action="delete-subject" data-id="${subject.id}">Borrar materia</button>` : '')}`,
     async ({ name, weeklyGoal }) => {
       const id = await window.api.saveSubject({ id: subject?.id, name, weeklyGoal });
       await reload();
@@ -411,7 +411,7 @@ const actions = {
   'edit-subject': (id) => subjectModal(state.subjects.find((s) => s.id === id)),
   'delete-subject': async (id) => {
     const s = state.subjects.find((x) => x.id === id);
-    if (!confirm(`¿Borrar "${s.name}" y todas sus sesiones? No se puede deshacer.`)) return;
+    if (!confirm(`¿Borrar "${s.name}" con todas sus sesiones y notas? No se puede deshacer.`)) return;
     await window.api.deleteSubject(id);
     closeModal();
     await reload();
