@@ -149,6 +149,7 @@ function createWindow() {
     minWidth: 820,
     minHeight: 560,
     title: 'Study tracker',
+    icon: path.join(__dirname, '..', 'build', 'icon.png'),
     autoHideMenuBar: true,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
