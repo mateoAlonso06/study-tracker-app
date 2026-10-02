@@ -197,6 +197,7 @@ function liveView() {
       <aside class="live-notes">
         <div class="live-notes-head"><strong>Notas</strong><button data-action="live-add-note">+ Nota</button></div>
         <div class="live-note-list" id="live-note-list"></div>
+        <div class="live-notes-hint small muted">Arrastrá para reordenar</div>
       </aside>
       <section class="live-editor-col">
         <div class="live-title-row">
@@ -218,12 +219,81 @@ function renderLiveNoteList() {
   el.innerHTML = a.notes
     .map((n) => {
       const preview = n.content ? noteText(n.content).slice(0, 70) : '';
-      return `<button class="live-note ${n.id === a.currentNote ? 'active' : ''}" data-action="live-select-note" data-id="${n.id}">
+      return `<button class="live-note ${n.id === a.currentNote ? 'active' : ''}" draggable="true" title="Arrastrá para reordenar (Alt + flechas)" data-action="live-select-note" data-id="${n.id}">
         <strong>${esc(n.title || 'Sin título')}</strong>
         <span class="small muted">${esc(preview) || 'Vacía'}</span>
       </button>`;
     })
     .join('');
+}
+
+// Moves a note next to another one (before it, or after it when `after` is true).
+function moveNote(id, targetId, after) {
+  const a = live.active;
+  if (id === targetId) return;
+  const [note] = a.notes.splice(a.notes.findIndex((n) => n.id === id), 1);
+  const target = a.notes.findIndex((n) => n.id === targetId);
+  a.notes.splice(after ? target + 1 : target, 0, note);
+  renderLiveNoteList();
+  persistActiveSoon();
+}
+
+function bindNoteDrag(list) {
+  let dragId = null;
+  const clearMarks = () =>
+    list.querySelectorAll('.drop-before, .drop-after, .dragging').forEach((el) => el.classList.remove('drop-before', 'drop-after', 'dragging'));
+  const isAfter = (e, item) => {
+    const r = item.getBoundingClientRect();
+    return e.clientY > r.top + r.height / 2;
+  };
+
+  list.addEventListener('dragstart', (e) => {
+    const item = e.target.closest('.live-note');
+    if (!item) return;
+    dragId = Number(item.dataset.id);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', String(dragId));
+    item.classList.add('dragging');
+  });
+
+  list.addEventListener('dragover', (e) => {
+    if (dragId === null) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    list.querySelectorAll('.drop-before, .drop-after').forEach((el) => el.classList.remove('drop-before', 'drop-after'));
+    const item = e.target.closest('.live-note');
+    if (item && Number(item.dataset.id) !== dragId) item.classList.add(isAfter(e, item) ? 'drop-after' : 'drop-before');
+    else if (!item) list.lastElementChild?.classList.add('drop-after'); // empty space below the list
+  });
+
+  list.addEventListener('drop', (e) => {
+    if (dragId === null) return;
+    e.preventDefault();
+    const item = e.target.closest('.live-note');
+    if (item) moveNote(dragId, Number(item.dataset.id), isAfter(e, item));
+    else moveNote(dragId, Number(list.lastElementChild.dataset.id), true);
+    dragId = null;
+    clearMarks();
+  });
+
+  list.addEventListener('dragend', () => {
+    dragId = null;
+    clearMarks();
+  });
+
+  // Keyboard alternative: Alt + Arrow Up/Down moves the focused note.
+  list.addEventListener('keydown', (e) => {
+    const item = e.target.closest('.live-note');
+    if (!item || !e.altKey || !['ArrowUp', 'ArrowDown'].includes(e.key)) return;
+    e.preventDefault();
+    const id = Number(item.dataset.id);
+    const notes = live.active.notes;
+    const index = notes.findIndex((n) => n.id === id);
+    const neighbour = notes[e.key === 'ArrowUp' ? index - 1 : index + 1];
+    if (!neighbour) return;
+    moveNote(id, neighbour.id, e.key === 'ArrowDown');
+    list.querySelector(`[data-id="${id}"]`)?.focus();
+  });
 }
 
 function showNote(id, focus = false) {
@@ -254,6 +324,7 @@ function mountLive() {
     persistActiveSoon();
   });
   renderLiveNoteList();
+  bindNoteDrag(document.getElementById('live-note-list'));
   updateLiveUi();
 }
 
