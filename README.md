@@ -13,7 +13,10 @@ Everything is stored **locally** in a single SQLite file. No account, no cloud.
 - Subjects with a weekly hour goal, a streak and an activity heatmap.
 - Live study sessions: timer (free or Pomodoro), pause, and a **notes manager** (many notes per session,
   rich-text editor, drag to reorder).
-- Notes tab per subject with search and filters.
+- Notes tab per subject with search and filters, and **images inside notes** (button, paste or drag and drop).
+- **Files tab per subject**: attach images, PDFs or any file, preview images and PDFs inside the app, link files to sessions.
+- **Global search** (`Ctrl+K`) across notes, files, sessions and subjects.
+- **Export and import** everything (data and files) as a single zip, to back up or move to another PC.
 - Light, dark or system theme.
 - Optional Spotify player (needs Premium).
 
@@ -101,6 +104,10 @@ On Linux, `npm start` adds `--no-sandbox` for you (needed when Electron's sandbo
   Please report anything odd.
 - Installers are **not code-signed** (Windows SmartScreen will warn, see above).
 - Only x86_64 Linux and 64-bit Windows are built. There is no macOS or ARM build.
+- Files are stored as they are on your computer (not encrypted), and backups (`.zip`) are not encrypted either.
+  Keep them somewhere you trust.
+- Each file can be up to 100 MB. Search looks at file **names**, not inside PDFs or other documents.
+- Windows builds of the file, backup and search features were built by CI but not run on a real Windows machine yet.
 - No automatic updates: install a newer version over the old one (on Linux, run the one-line command again).
 
 ## Where your data lives
@@ -110,10 +117,29 @@ On Linux, `npm start` adds `--no-sandbox` for you (needed when Electron's sandbo
 | Linux | `~/.config/study-tracker/` |
 | Windows | `%APPDATA%\study-tracker\` |
 
-The database is `study-tracker.db` in that folder.
+Inside that folder:
 
-**Move your data to another PC:** close the app on both PCs, then copy `study-tracker.db` from the old folder
-into the new one (create the folder if it does not exist). Profiles, passwords, subjects, sessions and notes come with it.
+- `study-tracker.db`: profiles, subjects, sessions, notes and file records.
+- `files/`: the files you attach (images, PDFs...).
+- `backups-before-import/`: copies of what an import replaced, kept in case you want to go back. Delete them when you no longer need them.
+
+### Back up or move to another PC
+
+Use the built-in export and import. Copying only `study-tracker.db` is **not** enough anymore, because the attached files live in `files/`.
+
+1. On the old PC: **Opciones > Exportar datos…** and save the `.zip`.
+2. Copy the `.zip` to the new PC (USB drive, cloud drive...).
+3. On the new PC, install the app. On the first screen choose **Importar datos de un respaldo…**
+   (or **Opciones > Importar datos…** if you already use the app).
+4. The app shows what the backup contains and asks for confirmation. **Importing replaces everything currently in the app**;
+   the previous data is moved to `backups-before-import/`. The app restarts when it finishes.
+
+What a backup does and does not contain:
+
+- It contains every profile (with password hashes), subject, session, note and attached file of the computer.
+- It does **not** contain Spotify connections or "keep me signed in" sessions.
+- It is not encrypted. Anyone with the file can read your notes, so share backups only with people you trust.
+  An imported backup is checked before it is used (file names, database integrity, format), and a damaged or suspicious one is refused.
 
 Things that are per computer and must be set up again on the new PC:
 
@@ -182,13 +208,18 @@ Notes:
 | The window does not open the second time | Only one copy can run at a time. Look for the already open window. |
 | Spotify says "No hay ningún dispositivo activo" | Open Spotify on any device, play something once, then try again. |
 | Spotify connection fails with port error | Something else uses port `43871`. Close it and retry. |
-| Forgot a profile password | There is no recovery. Move the data folder away to start fresh, or keep a backup of `study-tracker.db`. |
+| Forgot a profile password | There is no recovery. Import a backup made before, or move the data folder away to start fresh. |
+| Import says the file is not valid | Only `.zip` files made by **Exportar datos…** work. A zip that was edited or comes from something else is refused on purpose. |
+| A file does not open with **Abrir con el sistema** | For safety only common document, image, audio and video types are opened. Other types (programs, scripts...) are shown in their folder instead. |
+| A PDF looks blank in the preview | Close the preview and open it again, or use **Abrir con el sistema** to view it with your PDF reader. |
 
 ## Project layout
 
 ```
 src/main.js          Electron main process, SQLite schema and IPC
 src/spotify.js       Spotify login (PKCE) and player API
+src/files.js         Attachments: storage on disk, studyfiles:// protocol, safe open
+src/backup.js        Export/import of all data as a zip (validation, staging, rollback)
 src/preload.js       Safe bridge between the UI and the main process
 src/renderer/        UI (plain HTML, CSS and JavaScript, Quill editor)
 build/icon.png       App icon

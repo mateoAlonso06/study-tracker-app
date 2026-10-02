@@ -30,7 +30,7 @@ Out: cloud sync, collaboration, full-text search inside PDFs, auto-update, code 
 - [x] T4 Session cards: file count and "+ Archivo"
 - [x] T5 Export / import zip (Options menu), tokens excluded, safe import, restart after import
 - [x] T6 Global search (Ctrl+K): notes, files, sessions, jump to result
-- [ ] T7 Docs (README, manual), packaged build smoke test, final checks
+- [x] T7 Docs (README, manual), packaged build smoke test, final checks
 
 ## Acceptance criteria
 - A PDF and an image can be added by button and by drag and drop, previewed in the app, renamed, saved elsewhere and deleted.
@@ -40,7 +40,7 @@ Out: cloud sync, collaboration, full-text search inside PDFs, auto-update, code 
 - A malicious zip (path traversal, bad database) is rejected without touching current data.
 
 ## Progress
-T1-T6 done (storage, Files tab, inline images, session file counts, export/import, global search). Next: T7 docs and packaged smoke test.
+All tasks done (T1-T7). Not pushed or released: a new version tag is needed for the one-line installer to deliver these features.
 
 ## Verification evidence
 - T1 (scripted run against the real app): png/pdf/txt/exe added; >100 MB, empty file, directory and missing path rejected with clear messages;
@@ -72,7 +72,12 @@ T1-T6 done (storage, Files tab, inline images, session file counts, export/impor
   all words must match; subject name finds that subject's notes, files and sessions; no-results message; groups limited to 6 ("6 de 9"); Enter on a note opens
   Inglés > Notas with the note expanded and flashing; on a PDF opens the preview; on a session finds it by its position text (42:10) and flashes the card;
   a plain .txt file is flashed, never launched; Ctrl+K inside the note editor is left to Quill (link) and never replaces an open dialog; Escape and background click close; dark theme checked.
+- T7: Linux AppImage built with the new modules (yazl, yauzl, files, backup, search verified inside app.asar). Packaged AppImage smoke run: files dropped in,
+  image thumbnail through studyfiles://, PDF in the built-in viewer, inline image in a note, Ctrl+K search finds it, no FATAL in the log.
+  Packaged build export (valid zip, 4 files) and inspect (read back with the packaged yauzl) with stubbed dialogs.
+  Regression on the final code: live-notes right-click delete run (11 checks) and drag-reorder/restart/save-order run (all checks) pass.
+  README and docs/MANUAL.md updated (features, data folder, export/import, files, search, limitations, shortcuts).
 - Not run: the OS actions themselves (the native file dialogs behind the "+ Archivo" button and the export/import pickers, replaced in tests; the AppImage/portable relaunch path of Import) (open, reveal in folder, save as dialog), to avoid launching programs on the desktop.
 
 ## Next step
-T7 docs (README, manual) and packaged smoke test.
+User decision: push to GitHub and publish a new version (npm version minor, then push with tags). Windows runtime still unverified on a real machine.

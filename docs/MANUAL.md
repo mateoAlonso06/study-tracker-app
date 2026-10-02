@@ -5,8 +5,9 @@ exactly as you will see them, for example **Iniciar sesión**.
 
 Contents: [First steps](#1-first-steps) · [Subjects](#2-subjects) · [Studying: live sessions](#3-studying-live-sessions) ·
 [Pomodoro](#4-pomodoro) · [Notes during a session](#5-notes-during-a-session) · [Saving a session](#6-saving-a-session) ·
-[Sessions and notes of a subject](#7-sessions-and-notes-of-a-subject) · [Options](#8-options-theme-spotify-sign-out) ·
-[Tips](#9-tips-and-shortcuts) · [FAQ](#10-faq)
+[Sessions, notes and files of a subject](#7-sessions-notes-and-files-of-a-subject) · [Search everything](#8-search-everything) ·
+[Back up and move to another PC](#9-back-up-and-move-to-another-pc) · [Options](#10-options-theme-spotify-sign-out) ·
+[Tips](#11-tips-and-shortcuts) · [FAQ](#12-faq)
 
 ## 1. First steps
 
@@ -76,6 +77,8 @@ with its own title and as much text as you need.
 - **+ Nota** creates a new note. Type its title in **Título de la nota** and write in the editor.
 - Click a note in the list to open it.
 - The editor has headings, bold, italic, underline, strikethrough, numbered and bulleted lists, quotes, code and links.
+- **Images:** use the image button in the toolbar, paste a screenshot (`Ctrl+V`), or drag an image from your computer into the note.
+  Images are saved inside the app and shown in the note. Click an image in a saved note to see it large.
 - **Reorder:** drag a note up or down, or focus it and press **Alt + ↑ / ↓**.
 - **Delete:** right-click a note and choose **Borrar** (it asks for confirmation if the note has content).
   This is the only way to delete a note here.
@@ -93,16 +96,17 @@ Click **Guardar sesión**. Each note you wrote is saved as its own note, linked 
 
 Forgot to start the timer? Use **Registrar manual**: pick the date, the duration in minutes, the topic and the position.
 
-## 7. Sessions and notes of a subject
+## 7. Sessions, notes and files of a subject
 
 Open a subject. At the top you see your **Racha**, the hours **Esta semana**, the **Total** and the number of **Sesiones**.
-Below there are two tabs:
+Below there are three tabs:
 
 ### Sesiones
 
 - An activity map of the last 20 weeks (darker means more hours that day).
-- The list of sessions, newest first. Each one has **+ Nota**, **Editar sesión** and **Borrar sesión**.
-  Deleting a session also deletes its notes.
+- The list of sessions, newest first. Each one has **+ Nota**, **+ Archivo**, **Editar sesión** and **Borrar sesión**,
+  and **Ver archivos (n)** when it has files. Deleting a session also deletes its notes, but **its files are kept** (they just stop belonging to the session).
+- You can drop files from your computer straight onto a session card to attach them to that session.
 
 ### Notas
 
@@ -115,7 +119,49 @@ All the notes of the subject, grouped by session, newest sessions first. Inside 
 - Click a note to expand it. Use **Editar** to change it (you can even move it to another session) or **Borrar** to delete it.
 - **+ Nueva nota** creates a note, with or without a session.
 
-## 8. Options: theme, Spotify, sign out
+### Archivos
+
+The documents of the subject: images, PDFs, and any other file (up to 100 MB each).
+
+- **Add files:** click **+ Agregar archivos**, or **drag files from your computer onto the window** (a dashed border tells you where they will go).
+  Files that cannot be added (too big, empty...) are listed in a message.
+- **Open:** click a file. Images and PDFs open in a viewer inside the app (use the arrows or the left/right keys to move between them).
+  Other common types (documents, spreadsheets, audio, video) are opened with your computer's default program.
+- **More options:** right-click a file, or click the **⋯** button: **Ver**, **Abrir con el sistema**, **Mostrar en la carpeta**,
+  **Guardar una copia…** (saves a copy wherever you choose), **Editar…** (rename it or link it to a session) and **Borrar**.
+- **Search and filters:** by name, by type (**Imágenes**, **PDF**, **Otros**) and by session.
+- For safety, programs, scripts and installers are never run from here: **Abrir con el sistema** shows them in their folder instead.
+- Your files are stored on your computer only, inside the app's data folder.
+
+## 8. Search everything
+
+Press **Ctrl + K** (or click **Buscar** on **Inicio**) to search all your subjects at once:
+
+- It looks in note titles and text, file names, session topics and positions (for example `min 42:10`), and subject names.
+- It ignores capital letters and accents, and when you type several words, all of them must match.
+- Move with **↑ / ↓**, open with **Enter**, close with **Esc**.
+- Opening a result takes you to the right place: a note opens expanded, a session card is highlighted, and images and PDFs open in the viewer.
+- With nothing typed, it lists your subjects so you can jump to one.
+- Inside a note editor `Ctrl + K` keeps its normal job (insert a link), so close the note first to use the search.
+
+## 9. Back up and move to another PC
+
+Open **Opciones** and use:
+
+- **Exportar datos…**: saves everything (all profiles, subjects, sessions, notes **and files**) in one `.zip` file.
+- **Importar datos…**: restores a backup. On a brand new PC you can also use **Importar datos de un respaldo…** on the first screen.
+
+When you import, the app shows what the backup contains and asks you to confirm.
+**It replaces everything that is currently in the app**, but your previous data is kept in a folder called `backups-before-import`
+(inside the app's data folder), and the app restarts by itself.
+
+Good to know:
+
+- The backup does not include Spotify connections or "keep me signed in": connect and sign in again on the new PC.
+- It is not encrypted, so keep the file somewhere safe.
+- A damaged or suspicious file is refused and nothing changes.
+
+## 10. Options: theme, Spotify, sign out
 
 Click **Opciones** at the bottom left.
 
@@ -124,29 +170,34 @@ Click **Opciones** at the bottom left.
   [README](../README.md#spotify-optional). Needs Spotify Premium.
   Once connected you get a mini player (previous, play/pause, next). Click it for the full player: progress, volume,
   shuffle, repeat, device and your playlists.
+- **Exportar datos…** and **Importar datos…**: see [Back up and move to another PC](#9-back-up-and-move-to-another-pc).
 - **Cerrar sesión:** goes back to the profile screen and forgets "keep me signed in" on this computer.
 
-## 9. Tips and shortcuts
+## 11. Tips and shortcuts
 
-- **Esc** closes menus and dialogs.
+- **Ctrl + K** searches everything.
+- **Esc** closes menus, dialogs and the search.
 - **Alt + ↑ / ↓** moves the focused note in the live notes list.
 - Right-click a note in the live list to delete it.
 - Put the thing you will do next in **Hasta dónde llegaste**; it saves you from searching where you were.
 - A streak counts a day if you saved at least one session that day, so even a short session keeps it alive.
 
-## 10. FAQ
+## 12. FAQ
 
 **Where is my data?**
-In one file on your computer. See [Where your data lives](../README.md#where-your-data-lives).
+On your computer only: a database plus a folder with your files. See [Where your data lives](../README.md#where-your-data-lives).
 
 **How do I move my data to another PC?**
-Copy `study-tracker.db` with the app closed. Details in the README.
+**Opciones > Exportar datos…** on the old PC, then **Importar datos…** on the new one. See [Back up and move to another PC](#9-back-up-and-move-to-another-pc).
+
+**Can I search inside my PDFs?**
+Not yet: search looks at file names, not at the text inside the documents.
 
 **Can I use it on two PCs at the same time?**
 Not synchronized. Each computer has its own copy of the data.
 
 **I forgot my password.**
-There is no recovery, passwords are stored as hashes. Restore a backup of `study-tracker.db`, or start a new profile.
+There is no recovery, passwords are stored as hashes. Import a backup made earlier, or start a new profile.
 
 **The timer lost some seconds after a crash.**
 The session is saved every few seconds, so a crash can lose a few seconds at most.
