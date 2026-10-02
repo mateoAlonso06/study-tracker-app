@@ -1,0 +1,13 @@
+{
+  "name": "study-tracker",
+  "version": "0.1.0",
+  "description": "Local study tracker: sessions, notes and streaks per subject",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron . --no-sandbox"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^44.5.1"
+  }
+}
