@@ -32,6 +32,7 @@ function toast(message, kind = 'info') {
   el.textContent = message;
   document.body.appendChild(el);
   setTimeout(() => el.remove(), kind === 'error' ? 8000 : 4500);
+  return el;
 }
 
 // ---------- listing ----------

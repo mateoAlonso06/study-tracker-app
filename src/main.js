@@ -1,6 +1,7 @@
 const { app, BrowserWindow, ipcMain, shell, safeStorage, protocol, dialog, net } = require('electron');
 const spotify = require('./spotify');
 const files = require('./files');
+const backup = require('./backup');
 
 // Must run before the app is ready: lets the UI load attachments through studyfiles://file/<id>.
 protocol.registerSchemesAsPrivileged([{ scheme: 'studyfiles', privileges: { standard: true, secure: true, supportFetchAPI: true, stream: true } }]);
@@ -404,6 +405,12 @@ app.whenReady().then(() => {
   spotify.register({ ipcMain, db, shell, safeStorage, requireUser });
   filesApi = files.register({ ipcMain, db, app, dialog, shell, protocol, net, BrowserWindow, requireUser, getUserId: () => currentUserId });
   filesApi.sweepAll();
+  backup.register({
+    ipcMain, app, dialog, shell, BrowserWindow,
+    getDb: () => db,
+    closeDb: () => db.close(),
+    releaseLock: () => app.releaseSingleInstanceLock(),
+  });
   createWindow();
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();

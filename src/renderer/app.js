@@ -123,6 +123,8 @@ function render() {
                 .join('')}
             </div>
             <div class="menu-sep"></div>
+            <button class="menu-item" data-action="backup-export">Exportar datos…<span class="small muted">Guardar un respaldo (.zip)</span></button>
+            <button class="menu-item" data-action="backup-import">Importar datos…<span class="small muted">Restaurar desde un respaldo</span></button>
             <button class="menu-item" data-action="spotify-settings">Spotify<span class="small muted" id="spotify-menu-status">${sp.status?.connected ? 'Conectado' : 'Conectar cuenta'}</span></button>
             <button class="menu-item" data-action="logout">Cerrar sesión<span class="small muted">Volver a elegir perfil</span></button>
           </div>
@@ -260,12 +262,14 @@ async function renderLogin() {
       .join('')}
     <button data-action="new-user" style="margin-top:8px">+ Nuevo perfil</button>
     <label class="check keep"><input type="checkbox" id="keep-session" /> Mantener sesión activa</label>
+    <button class="ghost import-link" data-action="backup-import">Importar datos de un respaldo…</button>
   </div>`;
 }
 
 // ---------- modals ----------
 
 function openModal(html, onSubmit) {
+  if (modalCleanup) closeModal(); // a previous dialog with pending cleanup is being replaced
   modalRoot.innerHTML = `<div class="overlay"><form class="modal" novalidate>${html}<div class="error" id="form-error"></div></form></div>`;
   const form = modalRoot.querySelector('form');
   const first = form.querySelector('input, textarea');
@@ -282,8 +286,13 @@ function openModal(html, onSubmit) {
   });
 }
 
+let modalCleanup = null; // set by a dialog that holds something to discard when it is dismissed
+
 const closeModal = () => {
   modalRoot.innerHTML = '';
+  const cleanup = modalCleanup;
+  modalCleanup = null;
+  if (cleanup) cleanup();
 };
 
 const cleanError = (err) => String(err.message || err).replace(/^Error invoking remote method '[^']+': (Error: )?/, '');
@@ -476,7 +485,7 @@ const actions = {
   },
 };
 
-Object.assign(actions, liveActions, notesActions, spotifyActions, attachmentActions);
+Object.assign(actions, liveActions, notesActions, spotifyActions, attachmentActions, backupActions);
 
 document.addEventListener('click', (e) => {
   const el = e.target.closest('[data-action]');
@@ -501,6 +510,7 @@ document.addEventListener('keydown', (e) => {
 });
 
 async function boot() {
+  reportLastImport(); // tells the user how an import that restarted the app ended (does not block startup)
   const token = getRememberToken();
   if (token) {
     try {

@@ -38,6 +38,12 @@ function register({ ipcMain, db, app, dialog, shell, protocol, net, BrowserWindo
   const columns = `id, subject_id AS subjectId, session_id AS sessionId, name, original_name AS originalName,
                    mime, size, inline, created_at AS createdAt`;
 
+  // The path of a stored file. The name must be one of ours (a restored backup is untrusted input).
+  const storedPath = (uid, row) => {
+    if (!STORED_NAME.test(row.stored_name)) throw new Error('El archivo tiene un nombre no válido');
+    return path.join(userDir(uid), row.stored_name);
+  };
+
   const rowFor = (uid, id) => {
     const row = db.prepare('SELECT * FROM attachments WHERE id = ? AND user_id = ?').get(id, uid);
     if (!row) throw new Error('Archivo no encontrado');
@@ -174,7 +180,7 @@ function register({ ipcMain, db, app, dialog, shell, protocol, net, BrowserWindo
   ipcMain.handle('files:open', async (_e, id) => {
     const uid = requireUser();
     const row = rowFor(uid, id);
-    const file = path.join(userDir(uid), row.stored_name);
+    const file = storedPath(uid, row);
     if (!fs.existsSync(file)) throw new Error('El archivo ya no está en el disco');
     if (SAFE_TO_OPEN.has(extensionOf(row.original_name))) {
       const error = await shell.openPath(file);
@@ -187,7 +193,7 @@ function register({ ipcMain, db, app, dialog, shell, protocol, net, BrowserWindo
 
   ipcMain.handle('files:reveal', (_e, id) => {
     const uid = requireUser();
-    shell.showItemInFolder(path.join(userDir(uid), rowFor(uid, id).stored_name));
+    shell.showItemInFolder(storedPath(uid, rowFor(uid, id)));
   });
 
   ipcMain.handle('files:save-as', async (e, id) => {
@@ -196,7 +202,7 @@ function register({ ipcMain, db, app, dialog, shell, protocol, net, BrowserWindo
     const win = BrowserWindow.fromWebContents(e.sender);
     const target = await dialog.showSaveDialog(win, { title: 'Guardar una copia', defaultPath: row.name });
     if (target.canceled || !target.filePath) return { saved: false };
-    await fsp.copyFile(path.join(userDir(uid), row.stored_name), target.filePath);
+    await fsp.copyFile(storedPath(uid, row), target.filePath);
     return { saved: true };
   });
 

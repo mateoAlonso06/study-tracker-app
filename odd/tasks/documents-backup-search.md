@@ -28,7 +28,7 @@ Out: cloud sync, collaboration, full-text search inside PDFs, auto-update, code 
 - [x] T2 "Archivos" tab per subject: add button, drag and drop, grid with thumbnails, preview modal, context menu (open, save as, edit, delete)
 - [x] T3 Inline images in notes: editor upload handler (toolbar, paste, drop), sanitizer allows only `studyfiles://file/<id>`, orphan sweep
 - [x] T4 Session cards: file count and "+ Archivo"
-- [ ] T5 Export / import zip (Options menu), tokens excluded, safe import, restart after import
+- [x] T5 Export / import zip (Options menu), tokens excluded, safe import, restart after import
 - [ ] T6 Global search (Ctrl+K): notes, files, sessions, jump to result
 - [ ] T7 Docs (README, manual), packaged build smoke test, final checks
 
@@ -40,7 +40,7 @@ Out: cloud sync, collaboration, full-text search inside PDFs, auto-update, code 
 - A malicious zip (path traversal, bad database) is rejected without touching current data.
 
 ## Progress
-T1-T4 done (storage, Files tab, inline images, session file counts). Next: T5 export/import.
+T1-T5 done (storage, Files tab, inline images, session file counts, export/import). Next: T6 global search.
 
 ## Verification evidence
 - T1 (scripted run against the real app): png/pdf/txt/exe added; >100 MB, empty file, directory and missing path rejected with clear messages;
@@ -58,7 +58,17 @@ T1-T4 done (storage, Files tab, inline images, session file counts). Next: T5 ex
   deleting a note frees its images only after the 10 minute guard (checked by aging the rows).
 - T4 (scripted run, real drops): session cards show "+ Archivo"; dropping on a session card attaches to that session (hint names the session), card shows "Ver archivos (n)" which opens the Files tab filtered to it;
   dropping elsewhere attaches to the subject only; deleting a session keeps its files unlinked.
-- Not run: the OS actions themselves (and the native file dialog behind the "+ Archivo" buttons) (open, reveal in folder, save as dialog), to avoid launching programs on the desktop.
+- T5 (scripted runs through the real IPC handlers and the real UI; native dialogs replaced from the main-process inspector):
+  export gives a valid zip (manifest, db, 4 files); Spotify/remember tokens and spotify settings are absent from the zip, bytes included
+  (a first run FOUND the fake secrets in the db free pages: fixed with secure_delete + VACUUM, re-run found none); live db untouched, no temp leftovers.
+  17 hostile/broken zips (../ and deep traversal, absolute path, backslash name, unexpected file and folder, name not matching our pattern, missing manifest,
+  missing db, corrupt db, db without required tables, attachment row pointing outside the folder, wrong app, future format, bad manifest json, duplicate entry, not a zip)
+  all rejected with a clear message; db hash and files unchanged; no staging left; nothing written outside the app folder.
+  Import over existing data: app restarted by itself, data equals the backup (profiles, password hash login, notes, inline image, pdf), tokens gone,
+  previous db + files kept in backups-before-import; stale staging dir removed at startup; startup toast with the safety folder.
+  Forced failure half way: everything restored (db hash identical), error reported, app restarted, no empty safety folder.
+  UI: import link on the login screen (new PC), confirmation dialog with counts, Cancel and Escape discard the staged copy, Options menu export and import entries.
+- Not run: the OS actions themselves (the native file dialogs behind the "+ Archivo" button and the export/import pickers, replaced in tests; the AppImage/portable relaunch path of Import) (open, reveal in folder, save as dialog), to avoid launching programs on the desktop.
 
 ## Next step
-T5 export / import zip.
+T6 global search (Ctrl+K).
