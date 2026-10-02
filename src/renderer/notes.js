@@ -179,7 +179,7 @@ function notesPanel() {
         <div><label>Hasta</label><input type="date" data-filter="to" value="${esc(f.to)}" /></div>
         <div><label>Orden</label><select data-filter="order">${opt('desc', 'Más recientes primero', f.order)}${opt('asc', 'Más antiguas primero', f.order)}</select></div>
         <div><label>Vista</label><select data-filter="group">${opt('session', 'Agrupadas por sesión', f.group)}${opt('flat', 'Lista simple', f.group)}</select></div>
-        <div class="filter-clear"><button class="ghost" data-action="clear-filters">Limpiar</button></div>
+        <div class="filter-clear"><button type="button" data-action="clear-filters">Limpiar filtros</button></div>
       </div>
     </div>
     <div id="notes-results">${notesResults()}</div>`;

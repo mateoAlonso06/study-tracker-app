@@ -264,3 +264,8 @@ label.check { display: flex; align-items: center; gap: 8px; font-size: 14px; col
 label.check input { width: auto; padding: 0; }
 .login .keep { margin-top: 18px; }
 .field .check + p { margin: 4px 0 0 26px; }
+
+/* same height for every control in the notes filters */
+.filter-row input, .filter-row select, .filter-row button { height: 38px; padding-top: 0; padding-bottom: 0; }
+.filter-row button { white-space: nowrap; }
+.search-row .search, .search-row button { height: 40px; padding-top: 0; padding-bottom: 0; }
