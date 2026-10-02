@@ -21,7 +21,31 @@ Everything is stored **locally** in a single SQLite file. No account, no cloud.
 
 Pick one option.
 
-### Option A: installers (recommended)
+### Option 0: one command (Linux x86_64)
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/mateoAlonso06/study-tracker-app/main/install.sh | bash
+```
+
+It downloads the latest release and installs it: the `.deb` on Debian/Ubuntu (asks for `sudo`), or the AppImage under
+`~/.local` plus an entry in your application menu on any other distro. Run the same command again to update.
+Your data is never touched.
+
+To uninstall (your data in `~/.config/study-tracker` is kept):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/mateoAlonso06/study-tracker-app/main/install.sh | bash -s -- --uninstall
+```
+
+Optional environment variables: `STUDY_TRACKER_VERSION=v0.1.0` (install a specific version) and
+`STUDY_TRACKER_METHOD=deb|appimage` (skip the automatic choice). Example:
+`curl -fsSL <url> | STUDY_TRACKER_METHOD=appimage bash`.
+
+> It needs at least one published release. Create it by pushing a tag, see
+> [Building the installers](#building-the-installers). As with any `curl | bash`, you can read the script first:
+> [`install.sh`](install.sh).
+
+### Option A: installers
 
 Installers are not stored in git (they are about 100 MB). You can get them in two ways:
 
