@@ -29,7 +29,7 @@ Out: cloud sync, collaboration, full-text search inside PDFs, auto-update, code 
 - [x] T3 Inline images in notes: editor upload handler (toolbar, paste, drop), sanitizer allows only `studyfiles://file/<id>`, orphan sweep
 - [x] T4 Session cards: file count and "+ Archivo"
 - [x] T5 Export / import zip (Options menu), tokens excluded, safe import, restart after import
-- [ ] T6 Global search (Ctrl+K): notes, files, sessions, jump to result
+- [x] T6 Global search (Ctrl+K): notes, files, sessions, jump to result
 - [ ] T7 Docs (README, manual), packaged build smoke test, final checks
 
 ## Acceptance criteria
@@ -40,7 +40,7 @@ Out: cloud sync, collaboration, full-text search inside PDFs, auto-update, code 
 - A malicious zip (path traversal, bad database) is rejected without touching current data.
 
 ## Progress
-T1-T5 done (storage, Files tab, inline images, session file counts, export/import). Next: T6 global search.
+T1-T6 done (storage, Files tab, inline images, session file counts, export/import, global search). Next: T7 docs and packaged smoke test.
 
 ## Verification evidence
 - T1 (scripted run against the real app): png/pdf/txt/exe added; >100 MB, empty file, directory and missing path rejected with clear messages;
@@ -68,7 +68,11 @@ T1-T5 done (storage, Files tab, inline images, session file counts, export/impor
   previous db + files kept in backups-before-import; stale staging dir removed at startup; startup toast with the safety folder.
   Forced failure half way: everything restored (db hash identical), error reported, app restarted, no empty safety folder.
   UI: import link on the login screen (new PC), confirmation dialog with counts, Cancel and Escape discard the staged copy, Options menu export and import entries.
+- T6 (scripted run with real key events): Ctrl+K opens from Inicio; empty query lists subjects; "leccion" (no accent) finds "Lección de verbos" with highlight and snippet;
+  all words must match; subject name finds that subject's notes, files and sessions; no-results message; groups limited to 6 ("6 de 9"); Enter on a note opens
+  Inglés > Notas with the note expanded and flashing; on a PDF opens the preview; on a session finds it by its position text (42:10) and flashes the card;
+  a plain .txt file is flashed, never launched; Ctrl+K inside the note editor is left to Quill (link) and never replaces an open dialog; Escape and background click close; dark theme checked.
 - Not run: the OS actions themselves (the native file dialogs behind the "+ Archivo" button and the export/import pickers, replaced in tests; the AppImage/portable relaunch path of Import) (open, reveal in folder, save as dialog), to avoid launching programs on the desktop.
 
 ## Next step
-T6 global search (Ctrl+K).
+T7 docs (README, manual) and packaged smoke test.

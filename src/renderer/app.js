@@ -169,7 +169,7 @@ function homeView() {
       </div>`;
     })
     .join('');
-  return `<div class="header"><h1>Inicio</h1><div class="actions"><button data-action="new-subject">+ Nueva materia</button></div></div>
+  return `<div class="header"><h1>Inicio</h1><div class="actions"><button data-action="open-search" title="Buscar en todo (Ctrl+K)">Buscar <span class="kbd">Ctrl K</span></button><button data-action="new-subject">+ Nueva materia</button></div></div>
     <div class="grid">${cards}</div>`;
 }
 
@@ -485,7 +485,7 @@ const actions = {
   },
 };
 
-Object.assign(actions, liveActions, notesActions, spotifyActions, attachmentActions, backupActions);
+Object.assign(actions, liveActions, notesActions, spotifyActions, attachmentActions, backupActions, searchActions);
 
 document.addEventListener('click', (e) => {
   const el = e.target.closest('[data-action]');
